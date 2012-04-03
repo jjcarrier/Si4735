@@ -1,16 +1,54 @@
 Arduino Si4735 Library
-Written by Ryan Owens for SparkFun Electronics - 5/17/11
-Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
-Actively Being Developed by Jon Carrier <jjcarrier@gmail.com>
 
-This library is for use with the SparkFun Si4735 Shield
-Released under the 'Buy Me a Beer' license
-(If we ever meet, you buy me a beer)
+Written by Ryan Owens for SparkFun Electronics on 5/17/11
+Altered by Wagner Sartori Junior <wsartori@gmail.com> on 09/13/11
+Actively being developed by Jon Carrier <jjcarrier@gmail.com>
+Refactoring, cosmetic changes and I2C mode by Radu - Eosif Mihailescu <radu.mihailescu@linux360.ro> 03/29/12
+Painstaking hardware testing by Todd Scott Canaday <tcanaday@memphis.edu> 04/03/2012
+I2C bug fixes pointed out by Ray Dees 04/03/2012
+
+This library is for use with the SparkFun Si4735 Shield or Breakout Board
+
+Originally released under the 'Buy Me a Beer' license (if we ever meet, you
+buy me a beer).
+
+To the furthest extent that this is legally possible, the fork maintained by 
+Radu - Eosif Mihailescu and published here https://github.com/csdexter/Si4735
+is hereby released under the LGPL version 3.
+To the furthest extent that this is legally enforceable, the copyright remains
+with the authors listed above.
 
 See the example sketches to learn how to use the library in your code.
 
-For the reading commands work, you'll need to add a diode between GPO1 and pin 12 or by using a logic level shifter circuit. 
-See http://wiki.wsartori.com/wiki/Trunet_Radio for more information on adding in the diode.
+HARDWARE NOTES:
+ * The Si4735 is a 3.3V I/O chip whereas the Arduino Uno/Mega are 5V I/O. This
+   means you will need to use logic level shifters if you are trying to use
+   the Breakout Board version with the latter. If you're using the Shield (or
+   the Breakout Board with the 3.3V Arduino Pro Minis), this has already been
+   taken care of for you.
+   However, a design bug survived in the Shield and you will need a makeshift
+   level converter in the form of a diode to make things work with an Arduino
+   Uno/Mega, details here: http://wiki.wsartori.com/wiki/Trunet_Radio
+ * If you're using the Breakout Board, you should connect a 32768Hz oscillator
+   to the RCLK and DCLK pins since the code assumes that is the case. See the
+   schematic for the Shield for reference.
+ * Quick connection reference:
+   SPI Mode, Si4735 -> Arduino:
+     SDIO      -> MOSI    (Arduino output)
+     GPO1      -> MISO    (Arduino input)
+     SCLK      -> SCK     (Arduino output)
+     #SEN      -> SS      (Arduino output)
+     #RESET    -> D9      (Arduino output)
+     GPO2/#INT -> D2/INT0 (Arduino bidirectional)
+   I2C Mode, Si4735 -> Arduino:
+     SDIO      -> SDA     (Arduino bidirectional)
+     SCLK      -> SCL     (Arduino output)
+     #SEN      -> tied high or low, tell the code which one with
+                  SI4735_PIN_SEN_HW*
+     #RESET    -> D9      (Arduino output)
+     GPO1      -> left floating
+     GPO2/#INT -> D2/INT0 (Arduino input)
+                  or (left floating or tied high, if not using interrupts)
 
-For general questions and updates on this library please see:
-http://carrierfrequency.blogspot.com/2011/08/si4735-amfmswlw-radio-project.html
+For general questions and updates on this library please contact the fork
+maintainer at <radu.mihailescu@linux360.ro>.

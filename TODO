@@ -1,0 +1,6 @@
+-> fix all TODOs in the files themselves
+-> add HAL support (shift register routing for SEN and RESET) to the code
+-> implement proper PI decoding (worldwide, that is)
+-> implement missing parts of the RDS standard
+-> move string tables to flash, SRAM is expensive
+-> make external oscillator optional, add note about bus silence while tuning
