@@ -460,7 +460,7 @@ void Si4735::begin(byte mode, bool xosc, bool slowshifter){
 #endif
     };
 
-    setMode(_mode, false, xosc);
+    setMode(mode, false, xosc);
 }
 
 void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3, 
@@ -826,8 +826,8 @@ void Si4735::setDeemphasis(byte deemph){
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_LW:
-        case SI4735_MODE_SW:        
-            setProperty(SI4735_PROP_AM_DEEMPHASIS, word(0x00, deemph));        
+        case SI4735_MODE_SW:
+            setProperty(SI4735_PROP_AM_DEEMPHASIS, word(0x00, deemph));
             break;
     }
 }
