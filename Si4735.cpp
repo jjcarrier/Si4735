@@ -445,6 +445,12 @@ void Si4735::begin(byte mode, bool xosc, bool slowshifter){
 #if !defined(SI4735_NOSPI)
         //Configure the SPI hardware
         SPI.begin();
+        //If SEN is NOT wired to SS, we need to manually configure it,
+        //otherwise SPI.begin() above already did it for us.
+        if(_pinSEN != SS) {
+            pinMode(_pinSEN, OUTPUT);
+            digitalWrite(_pinSEN, HIGH);
+        }
         //Datahseet says Si4735 can't do more than 2.5MHz on SPI and if you're
         //level shifting through a BOB-08745, you can't do more than 250kHz 
         SPI.setClockDivider((slowshifter ? SPI_CLOCK_DIV64 : SPI_CLOCK_DIV8));
