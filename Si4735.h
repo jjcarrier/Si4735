@@ -46,10 +46,10 @@
 //Constants for hardwired pins
 //Chip is always powered, do not use PIN_POWER semantics
 #define SI4735_PIN_POWER_HW 0xFF
-//Chip interfaced via I2C, GPO2 left floating or tied HIGH
-//Define both HW and HWH constants to suit both semantics when typing
+//Chip interfaced via I2C, GPO2 left floating or tied LOW
+//Define both HW and HWL constants to suit both semantics when typing
 #define SI4735_PIN_GPO2_HW 0xFF
-#define SI4735_PIN_GPO2_HWH 0xFF
+#define SI4735_PIN_GPO2_HWL 0xFF
 //Chip interfaced via I2C, SEN always HIGH, device address 0xC6
 #define SI4735_PIN_SEN_HWH 0xFF
 //Chip interfaced via I2C, SEN always LOW, device address 0x22

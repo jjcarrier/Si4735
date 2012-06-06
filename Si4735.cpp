@@ -283,6 +283,7 @@ const char * const Si4735_PTY2Text_EU[32] PROGMEM = {
     Si4735_PTY2Text_S_Documentary,
     Si4735_PTY2Text_S_EmergencyTest,
     Si4735_PTY2Text_S_Emergency};
+
 const char * const Si4735_PTY2Text_US[32] PROGMEM = {
     Si4735_PTY2Text_S_None, 
     Si4735_PTY2Text_S_News,
@@ -844,22 +845,32 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc){
     
     switch(_mode){
         case SI4735_MODE_FM:
-            sendCommand(SI4735_CMD_POWER_UP, SI4735_FLG_GPO2IEN | 
+            sendCommand(SI4735_CMD_POWER_UP, 
+                        ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 :
+                         SI4735_FLG_GPO2IEN) | 
                         (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_FM,
                         SI4735_OUT_ANALOG);
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-            sendCommand(SI4735_CMD_POWER_UP, SI4735_FLG_GPO2IEN | 
+            sendCommand(SI4735_CMD_POWER_UP,
+                        ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 :
+                         SI4735_FLG_GPO2IEN) | 
                         (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_AM,
                         SI4735_OUT_ANALOG);
             break;
     }
 
-    //Configure GPO lines to maximize stability
-    sendCommand(SI4735_CMD_GPIO_CTL, SI4735_FLG_GPO1OEN | SI4735_FLG_GPO2OEN);
-    sendCommand(SI4735_CMD_GPIO_SET, SI4735_FLG_GPO2LEVEL);
+    //Configure GPO lines to maximize stability (see datasheet for discussion)
+    //No need to do anything for GPO1 if using SPI
+    //No need to do anything for GPO2 if using interrupts
+    sendCommand(SI4735_CMD_GPIO_CTL, (_i2caddr ? SI4735_FLG_GPO1OEN : 0x00) |
+                                     ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 
+                                     SI4735_FLG_GPO2OEN : 0x00));
+    //Set GPO2 high if using interrupts as Si4735 has a LOW active INT line
+    if(_pinGPO2 != SI4735_PIN_GPO2_HW)
+      sendCommand(SI4735_CMD_GPIO_SET, SI4735_FLG_GPO2LEVEL);
 
     //Disable Mute
     unMute();
@@ -880,12 +891,13 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc){
             break;
     }
     
-    //Enable end-of-seek and RDS interrupts
+    //Enable end-of-seek and RDS interrupts, if we're actually using interrupts
     //TODO: write interrupt handlers for STCINT and RDSINT
-    setProperty(
-        SI4735_PROP_GPO_IEN, 
-        word(0x00, ((_mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) | 
-             SI4735_FLG_STCIEN));
+    if(_pinGPO2 != SI4735_PIN_GPO2_HW)
+      setProperty(
+          SI4735_PROP_GPO_IEN, 
+          word(0x00, ((_mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) | 
+                     SI4735_FLG_STCIEN));
 }
 
 void Si4735::setProperty(word property, word value){
