@@ -695,7 +695,13 @@ class Si4735
         * Parameters:
         *   which - interrupt flag to wait for, see SI4735_STATUS_*
         */
-        void waitForInterrupt(byte which);        
+        void waitForInterrupt(byte which);
+        
+        /*
+        * Description:
+        *   Performs actions common to all tuning modes.
+        */
+        void completeTune(void);
 };
 
 #endif
