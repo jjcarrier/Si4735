@@ -569,8 +569,7 @@ void Si4735::setFrequency(word frequency){
                         ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
     }
-    waitForInterrupt(SI4735_STATUS_STCINT);
-    if(_mode == SI4735_MODE_FM) enableRDS();
+    completeTune();
 }
 
 byte Si4735::getRevision(char* FW, char* CMP, char* REV, word* patch){
@@ -598,12 +597,12 @@ word Si4735::getFrequency(bool* valid){
     
     switch(_mode){
         case SI4735_MODE_FM:            
-            sendCommand(SI4735_CMD_FM_TUNE_STATUS, SI4735_FLG_INTACK);
+            sendCommand(SI4735_CMD_FM_TUNE_STATUS);
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-            sendCommand(SI4735_CMD_AM_TUNE_STATUS, SI4735_FLG_INTACK);
+            sendCommand(SI4735_CMD_AM_TUNE_STATUS);
             break;
     }    
     getResponse(_response);
@@ -629,8 +628,7 @@ void Si4735::seekUp(bool wrap){
                         ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
     }
-    waitForInterrupt(SI4735_STATUS_STCINT);
-    if(_mode == SI4735_MODE_FM) enableRDS();
+    completeTune();
 }
 
 void Si4735::seekDown(bool wrap){
@@ -647,8 +645,7 @@ void Si4735::seekDown(bool wrap){
                         ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
     }
-    waitForInterrupt(SI4735_STATUS_STCINT);
-    if(_mode == SI4735_MODE_FM) enableRDS();
+    completeTune();
 }
 
 void Si4735::setSeekThresholds(byte SNR, byte RSSI){
@@ -903,6 +900,9 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc){
 void Si4735::setProperty(word property, word value){
     sendCommand(SI4735_CMD_SET_PROPERTY, 0x00, highByte(property), 
                 lowByte(property), highByte(value), lowByte(value));
+    //Datasheet states SET_PROPERTY completes 10ms after sending the command
+    //irrespective of CTS coming up earlier than that
+    delay(10);
 }
 
 word Si4735::getProperty(word property){    
@@ -931,4 +931,20 @@ void Si4735::waitForInterrupt(byte which){
         delay(125);
         sendCommand(SI4735_CMD_GET_INT_STATUS);
     }
+}
+
+void Si4735::completeTune(void) {
+    waitForInterrupt(SI4735_STATUS_STCINT);
+    //Make future off-to-on STCINT transitions visible
+    switch(_mode){
+        case SI4735_MODE_FM:
+                sendCommand(SI4735_FM_TUNE_STATUS, SI4735_FLG_INTACK);
+            break;
+        case SI4735_MODE_AM:
+        case SI4735_MODE_SW:
+        case SI4735_MODE_LW:
+                sendCommand(SI4735_AM_TUNE_STATUS, SI4735_FLG_INTACK);
+            break;
+    }
+    if(_mode == SI4735_MODE_FM) enableRDS();
 }
