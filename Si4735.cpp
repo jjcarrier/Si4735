@@ -938,12 +938,12 @@ void Si4735::completeTune(void) {
     //Make future off-to-on STCINT transitions visible
     switch(_mode){
         case SI4735_MODE_FM:
-                sendCommand(SI4735_FM_TUNE_STATUS, SI4735_FLG_INTACK);
+                sendCommand(SI4735_CMD_FM_TUNE_STATUS, SI4735_FLG_INTACK);
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-                sendCommand(SI4735_AM_TUNE_STATUS, SI4735_FLG_INTACK);
+                sendCommand(SI4735_CMD_AM_TUNE_STATUS, SI4735_FLG_INTACK);
             break;
     }
     if(_mode == SI4735_MODE_FM) enableRDS();
