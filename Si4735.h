@@ -18,10 +18,6 @@
 #ifndef _SI4735_H_INCLUDED
 #define _SI4735_H_INCLUDED
 
-/* linking with Wire causes widespread pointer corruption, disabling while
-   this is thorougly investigated (I see another refactor coming up) */
-#define SI4735_NOI2C
-
 #if defined(ARDUINO) && ARDUINO >= 100
 # include <Arduino.h>  
 #else
