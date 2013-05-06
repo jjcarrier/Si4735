@@ -1,4 +1,4 @@
-/* Arduino Si4735 Library
+/* Arduino Si4735 (and family) Library
  * See the README file for author and licensing information. In case it's
  * missing from your distribution, use the one here as the authoritative
  * version: https://github.com/csdexter/Si4735/blob/master/README
@@ -19,9 +19,9 @@
 #define _SI4735_H_INCLUDED
 
 #if defined(ARDUINO) && ARDUINO >= 100
-# include <Arduino.h>  
+# include <Arduino.h>
 #else
-# include <WProgram.h>  
+# include <WProgram.h>
 #endif
 
 //Assign the default radio pin numbers (shield version)
@@ -61,7 +61,7 @@
 #define SI4735_LOCALE_US 0
 #define SI4735_LOCALE_EU 1
 
-//Define Si4735 Command codes
+//Define Si47xx Command codes
 #define SI4735_CMD_POWER_UP 0x01
 #define SI4735_CMD_GET_REV 0x10
 #define SI4735_CMD_POWER_DOWN 0x11
@@ -77,12 +77,26 @@
 #define SI4735_CMD_FM_RDS_STATUS 0x24
 #define SI4735_CMD_FM_AGC_STATUS 0x27
 #define SI4735_CMD_FM_AGC_OVERRIDE 0x28
+#define SI4735_CMD_TX_TUNE_FREQ 0x30
+#define SI4735_CMD_TX_TUNE_POWER 0x31
+#define SI4735_CMD_TX_TUNE_MEASURE 0x32
+#define SI4735_CMD_TX_TUNE_STATUS 0x33
+#define SI4735_CMD_TX_ASQ_STATUS 0x34
+#define SI4735_CMD_TX_RDS_BUF 0x35
+#define SI4735_CMD_TX_RDS_PS 0x36
 #define SI4735_CMD_AM_TUNE_FREQ 0x40
 #define SI4735_CMD_AM_SEEK_START 0x41
 #define SI4735_CMD_AM_TUNE_STATUS 0x42
 #define SI4735_CMD_AM_RSQ_STATUS 0x43
 #define SI4735_CMD_AM_AGC_STATUS 0x47
 #define SI4735_CMD_AM_AGC_OVERRIDE 0x48
+#define SI4735_CMD_WB_TUNE_FREQ 0x50
+#define SI4735_CMD_WB_TUNE_STATUS 0x52
+#define SI4735_CMD_WB_RSQ_STATUS 0x53
+#define SI4735_CMD_WB_SAME_STATUS 0x54
+#define SI4735_CMD_WB_ASQ_STATUS 0x55
+#define SI4735_CMD_WB_AGC_STATUS 0x57
+#define SI4735_CMD_WB_AGC_OVERRIDE 0x58
 #define SI4735_CMD_AUX_ASRC_START 0x61
 #define SI4735_CMD_AUX_ASQ_STATUS 0x65
 #define SI4735_CMD_GPIO_CTL 0x80
@@ -163,11 +177,12 @@
 #define SI4735_OUT_DIGITAL2 0xB0 // DCLK, DFS, DIO
 #define SI4735_OUT_BOTH (SI4735_OUT_ANALOG | SI4735_OUT_DIGITAL2)
 
-//Define Si4735 Status flag masks (bits the chip fed us)
+//Define Si47xx Status flag masks (bits the chip fed us)
 #define SI4735_STATUS_CTS 0x80
 #define SI4735_STATUS_ERR 0x40
 #define SI4735_STATUS_RSQINT 0x08
 #define SI4735_STATUS_RDSINT 0x04
+#define SI4735_STATUS_ASQINT 0x02
 #define SI4735_STATUS_STCINT 0x01
 #define SI4735_STATUS_BLTF 0x80
 #define SI4735_STATUS_AFCRL 0x02
@@ -181,15 +196,23 @@
 #define SI4735_STATUS_RSSILINT 0x01
 #define SI4735_STATUS_SMUTE 0x08
 #define SI4735_STATUS_PILOT 0x80
+#define SI4735_STATUS_OVERMOD 0x04
+#define SI4735_STATUS_IALH 0x02
+#define SI4735_STATUS_IALL 0x01
 
-//Define Si4735 Property codes
+//Define Si47xx Property codes
 #define SI4735_PROP_GPO_IEN word(0x0001)
+#define SI4735_PROP_DIGITAL_INPUT_FORMAT 0x0101
+#define SI4735_PROP_DIGITAL_OUTPUT_FORMAT 0x0102
+#define SI4735_PROP_DIGITAL_INPUT_SAMPLE_RATE 0x0103
+#define SI4735_PROP_DIGITAL_OUTPUT_SAMPLE_RATE 0x0104
 #define SI4735_PROP_REFCLK_FREQ 0x0201
 #define SI4735_PROP_REFCLK_PRESCALE 0x0202
 #define SI4735_PROP_FM_DEEMPHASIS 0x1100
 #define SI4735_PROP_FM_CHANNEL_FILTER 0x1102
 #define SI4735_PROP_FM_BLEND_STEREO_THRESHOLD 0x1105
 #define SI4735_PROP_FM_BLEND_MONO_THRESHOLD 0x1106
+#define SI4735_PROP_FM_ANTENNA_INPUT 0x1107
 #define SI4735_PROP_FM_MAX_TUNE_ERROR 0x1108
 #define SI4735_PROP_FM_RSQ_INT_SOURCE 0x1200
 #define SI4735_PROP_FM_RSQ_SNR_HI_THRESHOLD 0x1201
@@ -214,6 +237,8 @@
 #define SI4735_PROP_FM_RDS_INT_FIFO_COUNT 0x1501
 #define SI4735_PROP_FM_RDS_CONFIG 0x1502
 #define SI4735_PROP_FM_RDS_CONFIDENCE 0x1503
+#define SI4735_PROP_FM_AGC_ATTACK_RATE 0x1700
+#define SI4735_PROP_FM_AGC_RELEASE_RATE 0x1701
 #define SI4735_PROP_FM_BLEND_RSSI_STEREO_THRESHOLD 0x1800
 #define SI4735_PROP_FM_BLEND_RSSI_MONO_THRESHOLD 0x1801
 #define SI4735_PROP_FM_BLEND_RSSI_ATTACK_RATE 0x1802
@@ -226,6 +251,12 @@
 #define SI4735_PROP_FM_BLEND_MULTIPATH_MONO_THRESHOLD 0x1809
 #define SI4735_PROP_FM_BLEND_MULTIPATH_ATTACK_RATE 0x180A
 #define SI4735_PROP_FM_BLEND_MULTIPATH_RELEASE_RATE 0x180B
+#define SI4735_PROP_FM_BLEND_MAX_STEREO_SEPARATION 0x180C
+#define SI4735_PROP_FM_NB_DETECT_THRESHOLD 0x1900
+#define SI4735_PROP_FM_NB_INTERVAL 0x1901
+#define SI4735_PROP_FM_NB_RATE 0x1902
+#define SI4735_PROP_FM_NB_IIR_FILTER 0x1903
+#define SI4735_PROP_FM_NB_DELAY 0x1904
 #define SI4735_PROP_FM_HICUT_SNR_HIGH_THRESHOLD 0x1A00
 #define SI4735_PROP_FM_HICUT_SNR_LOW_THRESHOLD 0x1A01
 #define SI4735_PROP_FM_HICUT_ATTACK_RATE 0x1A02
@@ -233,6 +264,33 @@
 #define SI4735_PROP_FM_HICUT_MULTIPATH_TRIGGER_THRESHOLD 0x1A04
 #define SI4735_PROP_FM_HICUT_MULTIPATH_END_THRESHOLD 0x1A05
 #define SI4735_PROP_FM_HICUT_CUTOFF_FREQUENCY 0x1A06
+#define SI4735_PROP_TX_COMPONENT_ENABLE 0x2100
+#define SI4735_PROP_TX_AUDIO_DEVIATION 0x2101
+#define SI4735_PROP_TX_PILOT_DEVIATION 0x2102
+#define SI4735_PROP_TX_RDS_DEVIATION 0x2103
+#define SI4735_PROP_TX_LINE_INPUT_LEVEL 0x2104
+#define SI4735_PROP_TX_LINE_INPUT_MUTE 0x2105
+#define SI4735_PROP_TX_PREEMPHASIS 0x2106
+#define SI4735_PROP_TX_PILOT_FREQUENCY 0x2107
+#define SI4735_PROP_TX_ACOMP_ENABLE 0x2200
+#define SI4735_PROP_TX_ACOMP_THRESHOLD 0x2201
+#define SI4735_PROP_TX_ACOMP_ATTACK_TIME 0x2202
+#define SI4735_PROP_TX_ACOMP_RELEASE_TIME 0x2203
+#define SI4735_PROP_TX_ACOMP_GAIN 0x2204
+#define SI4735_PROP_TX_LIMITER_RELEASE_TIME 0x2205
+#define SI4735_PROP_TX_ASQ_INTERRUPT_SOURCE 0x2300
+#define SI4735_PROP_TX_ASQ_LEVEL_LOW 0x2301
+#define SI4735_PROP_TX_ASQ_DURATION_LOW 0x2302
+#define SI4735_PROP_TX_ASQ_LEVEL_HIGH 0x2303
+#define SI4735_PROP_TX_ASQ_DURATION_HIGH 0x2304
+#define SI4735_PROP_TX_RDS_INTERRUPT_SOURCE 0x2C00
+#define SI4735_PROP_TX_RDS_PI 0x2C01
+#define SI4735_PROP_TX_RDS_PS_MIX 0x2C02
+#define SI4735_PROP_TX_RDS_PS_MISC 0x2C03
+#define SI4735_PROP_TX_RDS_PS_REPEAT_COUNT 0x2C04
+#define SI4735_PROP_TX_RDS_PS_MESSAGE_COUNT 0x2C05
+#define SI4735_PROP_TX_RDS_PS_AF 0x2C06
+#define SI4735_PROP_TX_RDS_FIFO_SIZE 0x2C07
 #define SI4735_PROP_AM_DEEMPHASIS 0x3100
 #define SI4735_PROP_AM_CHANNEL_FILTER 0x3102
 #define SI4735_PROP_AM_AUTOMATIC_VOLUME_CONTROL_MAX_GAIN 0x3103
@@ -254,8 +312,27 @@
 #define SI4735_PROP_AM_SEEK_FREQ_SPACING 0x3402
 #define SI4735_PROP_AM_SEEK_TUNE_SNR_THRESHOLD 0x3403
 #define SI4735_PROP_AM_SEEK_TUNE_RSSI_THRESHOLD 0x3404
+#define SI4735_PROP_AM_AGC_ATTACK_RATE 0x3702
+#define SI4735_PROP_AM_AGC_RELEASE_RATE 0x3703
+#define SI4735_PROP_AM_FRONTEND_AGC_CONTROL 0x3705
+#define SI4735_PROP_AM_NB_DETECT_THRESHOLD 0x3900
+#define SI4735_PROP_AM_NB_INTERVAL 0x3901
+#define SI4735_PROP_AM_NB_RATE 0x3902
+#define SI4735_PROP_AM_NB_IIR_FILTER 0x3903
+#define SI4735_PROP_AM_NB_DELAY 0x3904
 #define SI4735_PROP_RX_VOLUME 0x4000
 #define SI4735_PROP_RX_HARD_MUTE 0x4001
+#define SI4735_PROP_WB_MAX_TUNE_ERROR 0x5108
+#define SI4735_PROP_WB_RSQ_INT_SOURCE 0x5200
+#define SI4735_PROP_WB_RSQ_SNR_HI_THRESHOLD 0x5201
+#define SI4735_PROP_WB_RSQ_SNR_LO_THRESHOLD 0x5202
+#define SI4735_PROP_WB_RSQ_RSSI_HI_THRESHOLD 0x5203
+#define SI4735_PROP_WB_RSQ_RSSI_LO_THRESHOLD 0x5204
+#define SI4735_PROP_WB_VALID_SNR_THRESHOLD 0x5403
+#define SI4735_PROP_WB_VALID_RSSI_THRESHOLD 0x5404
+#define SI4735_PROP_WB_SAME_INTERRUPT_SOURCE 0x5500
+#define SI4735_PROP_WB_ASQ_INTERRUPT_SOURCE 0x5600
+#define SI4735_PROP_AUX_ASQ_INTERRUPT_SOURCE 0x6600
 
 //Define RDS-related public flags (that may come handy to the user)
 #define SI4735_RDS_DI_STEREO 0x01
@@ -294,7 +371,7 @@ typedef struct {
     //PI is already taken :-(
     word programIdentifier;
     bool TP, TA, MS;
-    byte PTY, DICC;    
+    byte PTY, DICC;
     char programService[9];
     char programTypeName[9];
     char radioText[65];
@@ -308,7 +385,7 @@ class Si4735RDSDecoder
         *   Default constructor.
         */
         Si4735RDSDecoder() { resetRDS(); }
-        
+
         /*
         * Description:
         *   Decodes one RDS block and updates internal data structures.
@@ -317,7 +394,7 @@ class Si4735RDSDecoder
 
         /*
         * Description:
-        *   Returns currently decoded RDS data, filling a struct 
+        *   Returns currently decoded RDS data, filling a struct
         *   Si4735_RDS_Data.
         */
         void getRDSData(Si4735_RDS_Data* rdsdata);
@@ -333,21 +410,21 @@ class Si4735RDSDecoder
         *             availability and not actual value.
         */
         bool getRDSTime(Si4735_RDS_Time* rdstime = NULL);
-        
+
         /*
         * Description:
         *   Resets internal data structures, use when switching to a new
         *   station.
         */
         void resetRDS(void);
-        
+
 #if defined(SI4735_DEBUG)
         /* Description:
         *    Dumps RDS group type receipt statistics.
         */
         void dumpRDSStats(void);
 #endif
-        
+
     private:
         Si4735_RDS_Data _status;
         Si4735_RDS_Time _time;
@@ -357,7 +434,7 @@ class Si4735RDSDecoder
 #endif
         /*
         * Description:
-        *   Filters the string str in place to only contain printable 
+        *   Filters the string str in place to only contain printable
         *   characters and also replaces 0x0D (CR) with 0x00 effectively
         *   ending the string at that point as per RDBS §3.1.5.3.
         *   Any unprintable character is converted to a question mark ("?"),
@@ -367,7 +444,7 @@ class Si4735RDSDecoder
 
         /*
         * Description:
-        *   Switches endianness of the given value around. Si4735 is a 
+        *   Switches endianness of the given value around. Si4735 is a
         *   big-endian machine while Arduino is little-endian --  a storm of
         *   problems are headed our way if we ignore that.
         * Parameters:
@@ -386,13 +463,13 @@ class Si4735Translate
         *   at text.
         */
         void getTextForPTY(byte PTY, byte locale, char* text, byte textsize);
-        
+
         /*
         * Description:
         *   Translates the given PTY between the given locales.
         */
         byte translatePTY(byte PTY, byte fromlocale, byte tolocale);
-        
+
         /*
         * Description:
         *   Decodes the station callsign out of the PI using the method
@@ -400,7 +477,7 @@ class Si4735Translate
         * Parameters:
         *   programIdentifier - a word containing the Program Identifier value
         *                       from RDS
-        *   callSign - pointer to a char[] at least 5 characters long that 
+        *   callSign - pointer to a char[] at least 5 characters long that
         *              receives the decoded station call sign
         */
         void decodeCallSign(word programIdentifier, char* callSign);
@@ -420,25 +497,25 @@ class Si4735
         *   Use the hardwired pins constants above to tell the constructor you
         *   haven't used (and hardwired) some of the pins.
         * Parameters:
-        *   interface - interface and protocol used to talk to the chip 
+        *   interface - interface and protocol used to talk to the chip
         *   pin*      - pin numbers for connections to the Si4735, with
         *               defaults for the SparkFun Si4735 Shield already
         *               provided.
         */
-        Si4735(byte interface = SI4735_INTERFACE_SPI, 
+        Si4735(byte interface = SI4735_INTERFACE_SPI,
                byte pinPower = SI4735_PIN_POWER,
                byte pinReset = SI4735_PIN_RESET,
                byte pinGPO2 = SI4735_PIN_GPO2, byte pinSEN = SI4735_PIN_SEN);
-        
+
         /*
         * Description:
         *   This is the destructor, it shuts the Si4735 down
         */
         ~Si4735() { end(true); };
-        
+
         /*
-        * Description: 
-        *   Initializes the Si4735, powers up the radio in the desired mode 
+        * Description:
+        *   Initializes the Si4735, powers up the radio in the desired mode
         *   and limits the bandwidth appropriately.
         *   This function must be called before any other radio command.
         *   The band limits are set as follows:
@@ -456,9 +533,9 @@ class Si4735
         *                 1MHz by setting this to false.
         */
         void begin(byte mode, bool xosc = true, bool slowshifter = true);
-        
+
         /*
-        * Description: 
+        * Description:
         *   Used to send a command and its arguments to the radio chip.
         * Parameters:
         *   command - the command byte, see datasheet and use one of the
@@ -470,7 +547,7 @@ class Si4735
                          byte arg6 = 0, byte arg7 = 0);
 
         /*
-        * Description: 
+        * Description:
         *   Acquires certain revision parameters from the Si4735 chip, returns
         *   the last two digits of the chip part number (e.g. 35 for Si4735).
         * Parameters:
@@ -485,9 +562,9 @@ class Si4735
                          word* patch = NULL);
 
         /*
-        * Description: 
+        * Description:
         *   Used to to tune the radio to a desired frequency. The library uses
-        *   the mode indicated via begin() to determine how to set the 
+        *   the mode indicated via begin() to determine how to set the
         *   frequency.
         * Parameters:
         *   frequency - The frequency to tune to, in kHz (or in 10kHz if using
@@ -497,7 +574,7 @@ class Si4735
 
         /*
         * Description:
-        *   Gets the frequency the chip is currently tuned to.    
+        *   Gets the frequency the chip is currently tuned to.
         * Parameters:
         *   valid - will be set to true if the chip currently detects a valid
         *           (as defined by current Seek/Tune criteria, see
@@ -523,7 +600,7 @@ class Si4735
         *          band.
         */
         void seekDown(bool wrap = true);
-        
+
         /*
         * Description:
         *   Adjust the threshold levels of the seek function.
@@ -533,7 +610,7 @@ class Si4735
         *   AM Ranges:
         *     SNR = [0-63] in dB, default = 5dB
         *     RSSI = [0-63] in dBuV, default = 19dBuV
-        */    
+        */
         void setSeekThresholds(byte SNR, byte RSSI);
 
         /*
@@ -555,17 +632,17 @@ class Si4735
 
         /*
         * Description:
-        *   Retrieves the Received Signal Quality metrics using a 
+        *   Retrieves the Received Signal Quality metrics using a
         *   Si4735_RX_Metrics struct.
         */
         void getRSQ(Si4735_RX_Metrics* RSQ);
 
         /*
         * Description:
-        *   Sets the volume. Valid values are [0-63]. 
+        *   Sets the volume. Valid values are [0-63].
         */
         void setVolume(byte value) {
-            setProperty(SI4735_PROP_RX_VOLUME, 
+            setProperty(SI4735_PROP_RX_VOLUME,
                         word(0x00, constrain(value, 0, 63)));
         };
 
@@ -579,23 +656,23 @@ class Si4735
 
         /*
         * Description:
-        *   Increase the volume by 1. If the maximum volume has been 
+        *   Increase the volume by 1. If the maximum volume has been
         *   reached, no further increase will take place and returns false;
         *   otherwise true.
         */
         bool volumeUp(void);
-        
+
         /*
         * Description:
-        *   Decrease the volume by 1. If the minimum volume has been 
+        *   Decrease the volume by 1. If the minimum volume has been
         *   reached, no further decrease will take place and returns false;
         *   otherwise true.
         * Parameters:
-        *   alsomute - mute the output when reaching minimum volume, in 
+        *   alsomute - mute the output when reaching minimum volume, in
         *               addition to returning false
         */
         bool volumeDown(bool alsomute = false);
-        
+
         /*
         * Description:
         *   Mutes the audio output.
@@ -662,7 +739,7 @@ class Si4735
         *   powerdown - power the chip down first, as required by datasheet.
         *   xosc      - an external 32768Hz oscillator is present.
         */
-        void setMode(byte mode, bool powerdown = true, 
+        void setMode(byte mode, bool powerdown = true,
                      bool xosc = true);
 
         /*
@@ -671,7 +748,7 @@ class Si4735
         *   Si4735 Datasheet for more information.
         */
         void setProperty(word property, word value);
-        
+
         /*
         * Description:
         *   Gets a property value, see the SI4735_PROP_* constants and the
@@ -686,13 +763,13 @@ class Si4735
              _pinSEN;
         byte _mode, _response[16], _i2caddr;
         bool _haverds;
-        
+
         /*
         * Description:
         *   Enables RDS reception.
         */
         void enableRDS(void);
-        
+
         /*
         * Description:
         *   Waits for completion of various operations.
@@ -700,7 +777,7 @@ class Si4735
         *   which - interrupt flag to wait for, see SI4735_STATUS_*
         */
         void waitForInterrupt(byte which);
-        
+
         /*
         * Description:
         *   Performs actions common to all tuning modes.

@@ -1,4 +1,4 @@
-Arduino Si4735 Library
+Arduino Si4735 (and family) Library
 
 Written by Ryan Owens for SparkFun Electronics on 5/17/2011
 Altered by Wagner Sartori Junior <wsartori@gmail.com> on 9/13/2011
@@ -8,12 +8,15 @@ Painstaking hardware testing by Todd Scott Canaday <tcanaday@memphis.edu> 4/03/2
 I2C bug fixes pointed out by Ray Dees 4/03/2012
 Bug spotting in begin() -> setMode() interaction by Albert Tejera 5/24/2012
 
-This library is for use with the SparkFun Si4735 Shield or Breakout Board
+This library is intended for use with the SparkFun Si4735 Shield or Breakout
+Board, however it should work with most Si47xx chips that share the same command
+language. At the time of this writing, the list includes: Si4700->Si4713,
+Si4720, Si4721, Si4730, Si4731, Si4734->Si4749, Si4784 and Si4785.
 
 Originally released under the 'Buy Me a Beer' license (if we ever meet, you
 buy me a beer).
 
-To the furthest extent that this is legally possible, the fork maintained by 
+To the furthest extent that this is legally possible, the fork maintained by
 Radu - Eosif Mihailescu and published here https://github.com/csdexter/Si4735
 is hereby released under the LGPL version 3.
 To the furthest extent that this is legally enforceable, the copyright remains
@@ -24,7 +27,7 @@ See the example sketches to learn how to use the library in your code.
 HARDWARE NOTES:
  * The Si4735 is a 3.3V I/O chip whereas the Arduino Uno/Mega are 5V I/O. This
    means you will need to use logic level shifters if you are trying to use
-   the Breakout Board version with the latter. 
+   the Breakout Board version with the latter.
    If you're using the Shield, you should be ok save for a few fatal design
    mistakes SparkFun introduced. There are various hacks around to work around
    those, my personal recommendation is that you go for a real level shifter.

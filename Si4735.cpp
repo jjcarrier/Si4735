@@ -1,4 +1,4 @@
-/* Arduino Si4735 Library
+/* Arduino Si4735 (and family) Library
  * See the README file for author and licensing information. In case it's
  * missing from your distribution, use the one here as the authoritative
  * version: https://github.com/csdexter/Si4735/blob/master/README
@@ -67,7 +67,7 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             RTAW = (grouptype == SI4735_GROUP_2A) ? 4 : 2;
             fourchars[0] = switchEndian(
                 block[(grouptype == SI4735_GROUP_2A) ? 2 : 3]);
-            if(grouptype == SI4735_GROUP_2A) 
+            if(grouptype == SI4735_GROUP_2A)
                 fourchars[1] = switchEndian(block[3]);
             strncpy(&_status.radioText[RTA * RTAW], (char *)fourchars, RTAW);
             break;
@@ -99,7 +99,7 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             //information is being provided by the current station.
             if(!CT) break;
 
-            _havect = true;            
+            _havect = true;
             MJD = (unsigned long)(block[1] & SI4735_RDS_MJD_MASK) <<
                   SI4735_RDS_MJD_SHL;
             MJD |= (CT & SI4735_RDS_TIME_MJD_MASK) >> SI4735_RDS_TIME_MJD_SHR;
@@ -139,9 +139,9 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             }
             fourchars[0] = switchEndian(block[2]);
             fourchars[1] = switchEndian(block[3]);
-            strncpy(&_status.programTypeName[(block[1] & 
-                                              SI4735_RDS_PTYN_ADDRESS) * 4], 
-                    (char *)&fourchars, 4);            
+            strncpy(&_status.programTypeName[(block[1] &
+                                              SI4735_RDS_PTYN_ADDRESS) * 4],
+                    (char *)&fourchars, 4);
             break;
         case SI4735_GROUP_13A:
             //TODO: read the standard and do Enhanced Radio Paging
@@ -176,7 +176,7 @@ void Si4735RDSDecoder::resetRDS(void){
     memset(_status.programTypeName, ' ', 8);
     _status.programTypeName[8] = '\0';
     memset(_status.radioText, ' ', 64);
-    _status.radioText[64] = '\0';    
+    _status.radioText[64] = '\0';
     _status.DICC = 0;
     _rdstextab = false;
     _rdsptynab = false;
@@ -251,12 +251,12 @@ const char Si4735_PTY2Text_S_Public[] PROGMEM = "Public";
 const char Si4735_PTY2Text_S_College[] PROGMEM = "College";
 
 const char * const Si4735_PTY2Text_EU[32] PROGMEM = {
-    Si4735_PTY2Text_S_None, 
+    Si4735_PTY2Text_S_None,
     Si4735_PTY2Text_S_News,
     Si4735_PTY2Text_S_Current,
     Si4735_PTY2Text_S_Information,
     Si4735_PTY2Text_S_Sports,
-    Si4735_PTY2Text_S_Education, 
+    Si4735_PTY2Text_S_Education,
     Si4735_PTY2Text_S_Drama,
     Si4735_PTY2Text_S_Culture,
     Si4735_PTY2Text_S_Science,
@@ -267,11 +267,11 @@ const char * const Si4735_PTY2Text_EU[32] PROGMEM = {
     Si4735_PTY2Text_S_Classical,
     Si4735_PTY2Text_S_Classical,
     Si4735_PTY2Text_S_Other,
-    Si4735_PTY2Text_S_Weather, 
+    Si4735_PTY2Text_S_Weather,
     Si4735_PTY2Text_S_Finance,
     Si4735_PTY2Text_S_Children,
     Si4735_PTY2Text_S_Social,
-    Si4735_PTY2Text_S_Religion, 
+    Si4735_PTY2Text_S_Religion,
     Si4735_PTY2Text_S_TalkPhone,
     Si4735_PTY2Text_S_Travel,
     Si4735_PTY2Text_S_Leisure,
@@ -285,26 +285,26 @@ const char * const Si4735_PTY2Text_EU[32] PROGMEM = {
     Si4735_PTY2Text_S_Emergency};
 
 const char * const Si4735_PTY2Text_US[32] PROGMEM = {
-    Si4735_PTY2Text_S_None, 
+    Si4735_PTY2Text_S_None,
     Si4735_PTY2Text_S_News,
     Si4735_PTY2Text_S_Information,
     Si4735_PTY2Text_S_Sports,
     Si4735_PTY2Text_S_TalkPhone,
     Si4735_PTY2Text_S_Rock,
     Si4735_PTY2Text_S_Rock,
-    Si4735_PTY2Text_S_Adult, 
+    Si4735_PTY2Text_S_Adult,
     Si4735_PTY2Text_S_Rock,
     Si4735_PTY2Text_S_Top40,
     Si4735_PTY2Text_S_Country,
     Si4735_PTY2Text_S_Oldies,
     Si4735_PTY2Text_S_EasySoft,
     Si4735_PTY2Text_S_Nostalgia,
-    Si4735_PTY2Text_S_Jazz, 
-    Si4735_PTY2Text_S_Classical, 
+    Si4735_PTY2Text_S_Jazz,
+    Si4735_PTY2Text_S_Classical,
     Si4735_PTY2Text_S_RnB,
     Si4735_PTY2Text_S_RnB,
     Si4735_PTY2Text_S_Language,
-    Si4735_PTY2Text_S_Religion, 
+    Si4735_PTY2Text_S_Religion,
     Si4735_PTY2Text_S_Religion,
     Si4735_PTY2Text_S_Personality,
     Si4735_PTY2Text_S_Public,
@@ -313,9 +313,9 @@ const char * const Si4735_PTY2Text_US[32] PROGMEM = {
     Si4735_PTY2Text_S_None,
     Si4735_PTY2Text_S_None,
     Si4735_PTY2Text_S_None,
-    Si4735_PTY2Text_S_None, 
+    Si4735_PTY2Text_S_None,
     Si4735_PTY2Text_S_Weather,
-    Si4735_PTY2Text_S_EmergencyTest, 
+    Si4735_PTY2Text_S_EmergencyTest,
     Si4735_PTY2Text_S_Emergency};
 
 const byte Si4735_PTY_EU2US[32] PROGMEM = {0, 1, 0, 2, 3, 23, 0, 0, 0, 0, 7,
@@ -351,7 +351,7 @@ byte Si4735Translate::translatePTY(byte PTY, byte fromlocale, byte tolocale){
             return pgm_read_byte(&Si4735_PTY_EU2US[PTY]);
             break;
     }
-    
+
     //Never reached
     return 0;
 }
@@ -361,18 +361,18 @@ void Si4735Translate::decodeCallSign(word programIdentifier, char* callSign){
     if(programIdentifier >= 21672){
         callSign[0] = 'W';
         programIdentifier -= 21672;
-    } else 
+    } else
         if(programIdentifier < 21672 && programIdentifier >= 0x1000){
             callSign[0] = 'K';
             programIdentifier -= 0x1000;
         } else programIdentifier -= 1;
     if(programIdentifier >= 0){
         callSign[1] = char(programIdentifier / 676 + 'A');
-        callSign[2] = char((programIdentifier - 676 * programIdentifier / 
+        callSign[2] = char((programIdentifier - 676 * programIdentifier /
                             676) / 26 + 'A');
         callSign[3] = char(((programIdentifier - 676 * programIdentifier /
                              676) % 26 ) + 'A');
-        callSign[4] = '\0';        
+        callSign[4] = '\0';
     } else strcpy(callSign, "UNKN");
 }
 
@@ -401,7 +401,7 @@ void Si4735::begin(byte mode, bool xosc, bool slowshifter){
     //GPO1 is connected to MISO on the shield, the latter of which defaults to
     //INPUT mode on boot which makes it High-Z, which, in turn, allows the
     //pull-up inside the Si4735 to work its magic.
-    //For non-Shield, non SPI configurations, leave GPO1 floating or tie to 
+    //For non-Shield, non SPI configurations, leave GPO1 floating or tie to
     //HIGH.
     if(!_i2caddr) {
         //GPO2 must be driven HIGH after reset to select SPI
@@ -441,7 +441,7 @@ void Si4735::begin(byte mode, bool xosc, bool slowshifter){
     //we just used it to select SPI mode. If we are in I2C mode, then we look
     //to see if the user wants interrupts and only then enable it.
     if(_pinGPO2 != SI4735_PIN_GPO2_HW) pinMode(_pinGPO2, INPUT);
-    
+
     if(!_i2caddr) {
 #if !defined(SI4735_NOSPI)
         //Configure the SPI hardware
@@ -453,7 +453,7 @@ void Si4735::begin(byte mode, bool xosc, bool slowshifter){
             digitalWrite(_pinSEN, HIGH);
         }
         //Datahseet says Si4735 can't do more than 2.5MHz on SPI and if you're
-        //level shifting through a BOB-08745, you can't do more than 250kHz 
+        //level shifting through a BOB-08745, you can't do more than 250kHz
         SPI.setClockDivider((slowshifter ? SPI_CLOCK_DIV64 : SPI_CLOCK_DIV8));
         //SCLK idle LOW, SDIO sampled on RISING edge
         SPI.setDataMode(SPI_MODE0);
@@ -470,7 +470,7 @@ void Si4735::begin(byte mode, bool xosc, bool slowshifter){
     setMode(mode, false, xosc);
 }
 
-void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3, 
+void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
                          byte arg4, byte arg5, byte arg6, byte arg7){
     byte status;
 
@@ -481,7 +481,7 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
     Serial.print(arg1, HEX);
     Serial.print(" [");
     Serial.print(arg1, BIN);
-    Serial.print("], 0x");    
+    Serial.print("], 0x");
     Serial.print(arg2, HEX);
     Serial.print(" [");
     Serial.print(arg2, BIN);
@@ -542,7 +542,7 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
         Wire.endTransmission();
 #endif
     };
-    
+
     //Each command takes a different time to decode inside the chip; readiness
     //for next command and, indeed, availability/validity of reponse data is
     //being signalled by CTS in status byte.
@@ -564,7 +564,7 @@ void Si4735::setFrequency(word frequency){
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-            sendCommand(SI4735_CMD_AM_TUNE_FREQ, 0x00, highByte(frequency), 
+            sendCommand(SI4735_CMD_AM_TUNE_FREQ, 0x00, highByte(frequency),
                         lowByte(frequency), 0x00,
                         ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
@@ -574,7 +574,7 @@ void Si4735::setFrequency(word frequency){
 
 byte Si4735::getRevision(char* FW, char* CMP, char* REV, word* patch){
     sendCommand(SI4735_CMD_GET_REV);
-    getResponse(_response);    
+    getResponse(_response);
 
     if(FW) {
         FW[0] = _response[2];
@@ -588,15 +588,15 @@ byte Si4735::getRevision(char* FW, char* CMP, char* REV, word* patch){
     }
     if(REV) *REV = _response[8];
     if(patch) *patch = word(_response[4], _response[5]);
-    
+
     return _response[1];
 }
 
 word Si4735::getFrequency(bool* valid){
     word frequency;
-    
+
     switch(_mode){
-        case SI4735_MODE_FM:            
+        case SI4735_MODE_FM:
             sendCommand(SI4735_CMD_FM_TUNE_STATUS);
             break;
         case SI4735_MODE_AM:
@@ -604,7 +604,7 @@ word Si4735::getFrequency(bool* valid){
         case SI4735_MODE_LW:
             sendCommand(SI4735_CMD_AM_TUNE_STATUS);
             break;
-    }    
+    }
     getResponse(_response);
     frequency = word(_response[2], _response[3]);
 
@@ -615,16 +615,16 @@ word Si4735::getFrequency(bool* valid){
 void Si4735::seekUp(bool wrap){
     switch(_mode){
         case SI4735_MODE_FM:
-            sendCommand(SI4735_CMD_FM_SEEK_START, 
-                        (SI4735_FLG_SEEKUP | 
+            sendCommand(SI4735_CMD_FM_SEEK_START,
+                        (SI4735_FLG_SEEKUP |
                          (wrap ? SI4735_FLG_WRAP : 0x00)));
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-            sendCommand(SI4735_CMD_AM_SEEK_START, 
+            sendCommand(SI4735_CMD_AM_SEEK_START,
                         (SI4735_FLG_SEEKUP | (wrap ? SI4735_FLG_WRAP : 0x00)),
-                        0x00, 0x00, 0x00, 
+                        0x00, 0x00, 0x00,
                         ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
     }
@@ -634,14 +634,14 @@ void Si4735::seekUp(bool wrap){
 void Si4735::seekDown(bool wrap){
     switch(_mode){
         case SI4735_MODE_FM:
-            sendCommand(SI4735_CMD_FM_SEEK_START, 
+            sendCommand(SI4735_CMD_FM_SEEK_START,
                         (wrap ? SI4735_FLG_WRAP : 0x00));
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-            sendCommand(SI4735_CMD_AM_SEEK_START, 
-                        (wrap ? SI4735_FLG_WRAP : 0x00), 0x00, 0x00, 0x00, 
+            sendCommand(SI4735_CMD_AM_SEEK_START,
+                        (wrap ? SI4735_FLG_WRAP : 0x00), 0x00, 0x00, 0x00,
                         ((_mode == SI4735_MODE_SW) ? 0x01 : 0x00));
             break;
     }
@@ -651,18 +651,18 @@ void Si4735::seekDown(bool wrap){
 void Si4735::setSeekThresholds(byte SNR, byte RSSI){
     switch(_mode){
         case SI4735_MODE_FM:
-            setProperty(SI4735_PROP_FM_SEEK_TUNE_SNR_THRESHOLD, 
+            setProperty(SI4735_PROP_FM_SEEK_TUNE_SNR_THRESHOLD,
                         word(0x00, constrain(SNR, 0, 127)));
             setProperty(SI4735_PROP_FM_SEEK_TUNE_RSSI_THRESHOLD,
-                        word(0x00, constrain(RSSI, 0, 127)));                
+                        word(0x00, constrain(RSSI, 0, 127)));
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
-        case SI4735_MODE_LW:    
-            setProperty(SI4735_PROP_AM_SEEK_TUNE_SNR_THRESHOLD, 
+        case SI4735_MODE_LW:
+            setProperty(SI4735_PROP_AM_SEEK_TUNE_SNR_THRESHOLD,
                         word(0x00, constrain(SNR, 0, 63)));
             setProperty(SI4735_PROP_AM_SEEK_TUNE_RSSI_THRESHOLD,
-                        word(0x00, constrain(RSSI, 0, 63)));                
+                        word(0x00, constrain(RSSI, 0, 63)));
             break;
     }
 }
@@ -671,7 +671,7 @@ bool Si4735::readRDSBlock(word* block){
     //See if there's anything for us to do
     if(!(_mode == SI4735_MODE_FM && (getStatus() & SI4735_STATUS_RDSINT)))
         return false;
-    
+
     _haverds = true;
     //Grab the next available RDS group from the chip
     sendCommand(SI4735_CMD_FM_RDS_STATUS, SI4735_FLG_INTACK);
@@ -682,23 +682,23 @@ bool Si4735::readRDSBlock(word* block){
     block[1] = word(_response[6], _response[7]);
     block[2] = word(_response[8], _response[9]);
     block[3] = word(_response[10], _response[11]);
-    
+
     return true;
 }
 
 void Si4735::getRSQ(Si4735_RX_Metrics* RSQ){
     switch(_mode){
-        case SI4735_MODE_FM:            
-            sendCommand(SI4735_CMD_FM_RSQ_STATUS, SI4735_FLG_INTACK);            
+        case SI4735_MODE_FM:
+            sendCommand(SI4735_CMD_FM_RSQ_STATUS, SI4735_FLG_INTACK);
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-            sendCommand(SI4735_CMD_AM_RSQ_STATUS, SI4735_FLG_INTACK);            
+            sendCommand(SI4735_CMD_AM_RSQ_STATUS, SI4735_FLG_INTACK);
             break;
-    }    
-    //Now read the response    
-    getResponse(_response);    
+    }
+    //Now read the response
+    getResponse(_response);
 
     //Pull the response data into their respecive fields
     RSQ->RSSI = _response[4];
@@ -784,7 +784,7 @@ void Si4735::getResponse(byte* response){
             //I2C runs at 100kHz when using the Wire library, 100kHz = 10us
             //period so wait 10 bit-times for something to become available.
             while(!Wire.available()) delayMicroseconds(100);
-            response[i] = Wire.read();          
+            response[i] = Wire.read();
         }
 #endif
     };
@@ -815,7 +815,7 @@ void Si4735::end(bool hardoff){
     if(hardoff) {
         //datasheet calls for 10ns, Arduino can only go as low as 3us
         delayMicroseconds(5);
-#if !defined(SI4735_NOSPI)        
+#if !defined(SI4735_NOSPI)
         if(!_i2caddr) SPI.end();
 #endif
         digitalWrite(_pinReset, LOW);
@@ -825,8 +825,8 @@ void Si4735::end(bool hardoff){
 
 void Si4735::setDeemphasis(byte deemph){
     switch(_mode){
-        case SI4735_MODE_FM:            
-            setProperty(SI4735_PROP_FM_DEEMPHASIS, word(0x00, deemph));        
+        case SI4735_MODE_FM:
+            setProperty(SI4735_PROP_FM_DEEMPHASIS, word(0x00, deemph));
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_LW:
@@ -839,12 +839,12 @@ void Si4735::setDeemphasis(byte deemph){
 void Si4735::setMode(byte mode, bool powerdown, bool xosc){
     if(powerdown) end(false);
     _mode = mode;
-    
+
     switch(_mode){
         case SI4735_MODE_FM:
-            sendCommand(SI4735_CMD_POWER_UP, 
+            sendCommand(SI4735_CMD_POWER_UP,
                         ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 :
-                         SI4735_FLG_GPO2IEN) | 
+                         SI4735_FLG_GPO2IEN) |
                         (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_FM,
                         SI4735_OUT_ANALOG);
             break;
@@ -853,7 +853,7 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc){
         case SI4735_MODE_LW:
             sendCommand(SI4735_CMD_POWER_UP,
                         ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 :
-                         SI4735_FLG_GPO2IEN) | 
+                         SI4735_FLG_GPO2IEN) |
                         (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_AM,
                         SI4735_OUT_ANALOG);
             break;
@@ -863,7 +863,7 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc){
     //No need to do anything for GPO1 if using SPI
     //No need to do anything for GPO2 if using interrupts
     sendCommand(SI4735_CMD_GPIO_CTL, (_i2caddr ? SI4735_FLG_GPO1OEN : 0x00) |
-                                     ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 
+                                     ((_pinGPO2 == SI4735_PIN_GPO2_HW) ?
                                      SI4735_FLG_GPO2OEN : 0x00));
     //Set GPO2 high if using interrupts as Si4735 has a LOW active INT line
     if(_pinGPO2 != SI4735_PIN_GPO2_HW)
@@ -876,37 +876,37 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc){
     switch(_mode){
         case SI4735_MODE_SW:
             //Set the lower band limit for Short Wave Radio to 2.3 MHz
-            setProperty(SI4735_PROP_AM_SEEK_BAND_BOTTOM, 0x08FC);            
+            setProperty(SI4735_PROP_AM_SEEK_BAND_BOTTOM, 0x08FC);
             //Set the upper band limit for Short Wave Radio to 23 MHz
             setProperty(SI4735_PROP_AM_SEEK_BAND_TOP, 0x59D8);
             break;
         case SI4735_MODE_LW:
             //Set the lower band limit for Long Wave Radio to 152 kHz
-            setProperty(SI4735_PROP_AM_SEEK_BAND_BOTTOM, 0x0099);            
+            setProperty(SI4735_PROP_AM_SEEK_BAND_BOTTOM, 0x0099);
             //Set the upper band limit for Long Wave Radio to 279 kHz
-            setProperty(SI4735_PROP_AM_SEEK_BAND_BOTTOM, 0x0117);                            
+            setProperty(SI4735_PROP_AM_SEEK_BAND_BOTTOM, 0x0117);
             break;
     }
-    
+
     //Enable end-of-seek and RDS interrupts, if we're actually using interrupts
     //TODO: write interrupt handlers for STCINT and RDSINT
     if(_pinGPO2 != SI4735_PIN_GPO2_HW)
       setProperty(
-          SI4735_PROP_GPO_IEN, 
-          word(0x00, ((_mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) | 
+          SI4735_PROP_GPO_IEN,
+          word(0x00, ((_mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) |
                      SI4735_FLG_STCIEN));
 }
 
 void Si4735::setProperty(word property, word value){
-    sendCommand(SI4735_CMD_SET_PROPERTY, 0x00, highByte(property), 
+    sendCommand(SI4735_CMD_SET_PROPERTY, 0x00, highByte(property),
                 lowByte(property), highByte(value), lowByte(value));
     //Datasheet states SET_PROPERTY completes 10ms after sending the command
     //irrespective of CTS coming up earlier than that
     delay(10);
 }
 
-word Si4735::getProperty(word property){    
-    sendCommand(SI4735_CMD_GET_PROPERTY, 0x00, highByte(property), 
+word Si4735::getProperty(word property){
+    sendCommand(SI4735_CMD_GET_PROPERTY, 0x00, highByte(property),
                 lowByte(property));
     getResponse(_response);
 
@@ -916,11 +916,11 @@ word Si4735::getProperty(word property){
 void Si4735::enableRDS(void){
     //Enable and configure RDS reception
     if(_mode == SI4735_MODE_FM) {
-        setProperty(SI4735_PROP_FM_RDS_INT_SOURCE, word(0x00, 
+        setProperty(SI4735_PROP_FM_RDS_INT_SOURCE, word(0x00,
                                                         SI4735_FLG_RDSRECV));
         setProperty(SI4735_PROP_FM_RDS_INT_FIFO_COUNT, word(0x00, 0x01));
-        setProperty(SI4735_PROP_FM_RDS_CONFIG, word(SI4735_FLG_BLETHA_35 | 
-                    SI4735_FLG_BLETHB_35 | SI4735_FLG_BLETHC_35 | 
+        setProperty(SI4735_PROP_FM_RDS_CONFIG, word(SI4735_FLG_BLETHA_35 |
+                    SI4735_FLG_BLETHB_35 | SI4735_FLG_BLETHC_35 |
                     SI4735_FLG_BLETHD_35, SI4735_FLG_RDSEN));
     };
 }
