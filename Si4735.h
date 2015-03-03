@@ -333,6 +333,7 @@
 #define SI4735_PROP_WB_SAME_INTERRUPT_SOURCE 0x5500
 #define SI4735_PROP_WB_ASQ_INTERRUPT_SOURCE 0x5600
 #define SI4735_PROP_AUX_ASQ_INTERRUPT_SOURCE 0x6600
+#define SI4735_PROP_DEBUG_CONTROL 0xFF00
 
 //Define RDS-related public flags (that may come handy to the user)
 #define SI4735_RDS_DI_STEREO 0x01
@@ -636,6 +637,16 @@ class Si4735
         *   Si4735_RX_Metrics struct.
         */
         void getRSQ(Si4735_RX_Metrics* RSQ);
+
+        /*
+        * Description:
+        *   Disables debugging mode, fixes periodic click in audio. Only
+        *   applicable to revision D60 and later devices. See AN332 for
+        *   more details.
+        */
+        void disableChipDebug(void) {
+            setProperty(SI4735_PROP_DEBUG_CONTROL, 0x0000);
+        };
 
         /*
         * Description:
