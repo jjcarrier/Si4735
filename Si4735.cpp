@@ -376,6 +376,40 @@ void Si4735Translate::decodeCallSign(word programIdentifier, char* callSign){
     } else strcpy(callSign, "UNKN");
 }
 
+byte Si4735Translate::decodeTMCDistance(byte length) {
+  if (length == 0) return 0xFF;
+  else if (length > 0 && length <= 10) return length;
+  else if (length > 10 && length <= 15) return 10 + (length - 10) * 2;
+  else if (length > 15) return 20 + (length - 15) * 5;
+}
+
+void Si4735Translate::decodeTMCDuration(byte length, Si4735_RDS_Time* tmctime) {
+  if (!tmctime) return;
+  else memset(tmctime, 0x00, sizeof(Si4735_RDS_Time));
+
+  if (length <= 95) {
+    tmctime->tm_min = (length % 4) * 45;
+    tmctime->tm_hour = length / 4;
+  } else if (length > 95 && length <= 200) {
+    tmctime->tm_hour = (length - 95) % 24;
+    tmctime->tm_mday = (length - 95) / 24;
+  } else if (length > 200 && length < 231) {
+    tmctime->tm_mday = length - 200;
+  } else if (length > 231) {
+    // NOTE: according to RDS-TMC standard, this is expressed as half-month
+    // intervals. Therefore, this function will output things like Feb 30th
+    // with the understanding that the UI will render it appropriately.
+    tmctime->tm_mday = ((length - 231) * 15) % 31;
+    tmctime->tm_mon = ((length - 232) / 2) + 1;
+  };
+};
+
+word Si4735Translate::decodeAFFrequency(byte AF, bool FM) {
+  if (FM) return (AF + 875) * 10;
+  else if (AF < 16) return (AF - 1) * 9 + 153;
+    else return (AF - 16) * 9 + 531;
+};
+
 Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
                byte pinSEN){
     _mode = SI4735_MODE_FM;

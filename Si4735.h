@@ -482,6 +482,27 @@ class Si4735Translate
         *              receives the decoded station call sign
         */
         void decodeCallSign(word programIdentifier, char* callSign);
+
+        /*
+        * Description:
+        *   Translates an RDS-TMC event distance code into a human readable
+        *   measurement in km. Returns 0xFF to signal "more than 100km".
+        */
+        byte decodeTMCDistance(byte length);
+
+        /*
+        * Description:
+        *   Translates an RDS-TMC event duration code into a human readable
+        *   representation.
+        */
+        void decodeTMCDuration(byte length, Si4735_RDS_Time* tmctime);
+
+        /*
+        * Description:
+        *   Translates an AF frequency code into a human readable measurement
+        *   in kHz (or tens of kHz if FM is true).
+        */
+        word decodeAFFrequency(byte AF, bool FM = true);
 };
 
 class Si4735
