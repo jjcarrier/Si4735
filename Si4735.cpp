@@ -135,7 +135,8 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             //TODO: read the standard and do TMC listing
             break;
         case SI4735_GROUP_9A:
-            //TODO: read the standard and do EWS listing
+            //NOTE: EWS is defined per-country which is a polite way of saying
+            //      there is no standard and it's never going to work. Pity!
             break;
         case SI4735_GROUP_10A:
             if((block[1] & SI4735_RDS_PTYNAB) != _rdsptynab) {
@@ -362,7 +363,6 @@ byte Si4735Translate::translatePTY(byte PTY, byte fromlocale, byte tolocale){
 }
 
 void Si4735Translate::decodeCallSign(word programIdentifier, char* callSign){
-    //TODO: read the standard and implement world-wide PI decoding
     if(programIdentifier >= 21672){
         callSign[0] = 'W';
         programIdentifier -= 21672;

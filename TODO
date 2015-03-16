@@ -1,6 +1,5 @@
 -> fix all TODOs in the files themselves
 -> add HAL support (shift register routing for SEN and RESET) to the code
--> implement proper PI decoding (worldwide, that is)
 -> implement missing parts of the RDS standard
 -> add HAL support (SPI/I2C arbitrator)
 -> add hardware interrupt support for (at least) STCINT and RDSINT
