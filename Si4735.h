@@ -458,7 +458,6 @@ class Si4735RDSDecoder
     private:
         Si4735_RDS_Data _status;
         Si4735_RDS_Time _time;
-        signed char _tzoffset;
         bool _rdstextab, _rdsptynab, _havect;
 #if defined(SI4735_DEBUG)
         word _rdsstats[32];

@@ -177,12 +177,12 @@ bool Si4735RDSDecoder::getRDSTime(Si4735_RDS_Time* rdstime){
 }
 
 void Si4735RDSDecoder::resetRDS(void){
-    memset(_status.programService, ' ', 8);
-    _status.programService[8] = '\0';
-    memset(_status.programTypeName, ' ', 8);
-    _status.programTypeName[8] = '\0';
-    memset(_status.radioText, ' ', 64);
-    _status.radioText[64] = '\0';
+    memset(_status.programService, ' ', sizeof(_status.programService));
+    _status.programService[sizeof(_status.programService) - 1] = '\0';
+    memset(_status.programTypeName, ' ', sizeof(_status.programTypeName));
+    _status.programTypeName[sizeof(_status.programTypeName) - 1] = '\0';
+    memset(_status.radioText, ' ', sizeof(_status.radioText));
+    _status.radioText[sizeof(_status.programTypeName) - 1] = '\0';
     _status.DICC = 0;
     _rdstextab = false;
     _rdsptynab = false;
@@ -198,6 +198,7 @@ void Si4735RDSDecoder::makePrintable(char* str){
             str[i] = '\0';
             break;
         }
+        //TODO: implement codepages from standard and do full decoding.
         if(str[i] < 32 || str[i] > 126) str[i] = '?';
     }
 }
