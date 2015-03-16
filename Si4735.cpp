@@ -100,13 +100,15 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             if(!CT) break;
 
             _havect = true;
-            MJD = (unsigned long)(block[1] & SI4735_RDS_MJD_MASK) <<
-                  SI4735_RDS_MJD_SHL;
-            MJD |= (CT & SI4735_RDS_TIME_MJD_MASK) >> SI4735_RDS_TIME_MJD_SHR;
+            MJD = (unsigned long)(block[1] & SI4735_RDS_TIME_MJD1_MASK) <<
+                  SI4735_RDS_TIME_MJD1_SHL;
+            MJD |= (CT & SI4735_RDS_TIME_MJD2_MASK) >> SI4735_RDS_TIME_MJD2_SHR;
 
-            //We report UTC for now, better not fiddle with timezones
             _time.tm_hour = (CT & SI4735_RDS_TIME_HOUR_MASK) >>
                                           SI4735_RDS_TIME_HOUR_SHR;
+            _time.tm_tz = CT & SI4735_RDS_TIME_TZ_MASK;
+            if (CT & SI4735_RDS_TIME_TZ_SIGN)
+              _time.tm_tz = - _time.tm_tz;
             _time.tm_min = (CT & SI4735_RDS_TIME_MINUTE_MASK) >>
                                          SI4735_RDS_TIME_MINUTE_SHR;
             //Use integer arithmetic at all costs, Arduino lacks an FPU
@@ -408,6 +410,10 @@ word Si4735Translate::decodeAFFrequency(byte AF, bool FM) {
   if (FM) return (AF + 875) * 10;
   else if (AF < 16) return (AF - 1) * 9 + 153;
     else return (AF - 16) * 9 + 531;
+};
+
+int16_t Si4735Translate::decodeTZValue(int8_t tz) {
+  return (tz / 2) * 60 + (tz % 2) * 30;
 };
 
 Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,

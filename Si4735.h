@@ -366,6 +366,7 @@ typedef struct {
     byte tm_mon;
     word tm_year;
     byte tm_wday;
+    int8_t tm_tz;
 }  Si4735_RDS_Time;
 
 typedef struct {
@@ -429,6 +430,7 @@ class Si4735RDSDecoder
     private:
         Si4735_RDS_Data _status;
         Si4735_RDS_Time _time;
+        signed char _tzoffset;
         bool _rdstextab, _rdsptynab, _havect;
 #if defined(SI4735_DEBUG)
         word _rdsstats[32];
@@ -503,6 +505,13 @@ class Si4735Translate
         *   in kHz (or tens of kHz if FM is true).
         */
         word decodeAFFrequency(byte AF, bool FM = true);
+
+        /*
+        * Description:
+        *   Translates a timezone value to a human readable measurement in
+        *   minutes.
+        */
+        int16_t Si4735Translate::decodeTZValue(int8_t tz);
 };
 
 class Si4735
