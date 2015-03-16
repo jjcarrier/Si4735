@@ -48,12 +48,15 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             twochars = switchEndian(block[3]);
             strncpy(&_status.programService[DIPSA * 2], (char *)&twochars, 2);
             if(grouptype == SI4735_GROUP_0A) {
-                //TODO: read the standard and do AF list decoding
+                //NOTE: the total length of the AF list is unknown so the best
+                //      we can do is to make it available as we receive it.
+                _status.alternativeFrequencies = block[2];
             }
             break;
         case SI4735_GROUP_1A:
         case SI4735_GROUP_1B:
-            //TODO: read the standard and do PIN and slow labeling codes
+            _status.programItemNumber = block[3];
+            //TODO: read the standard and do slow labeling codes
             break;
         case SI4735_GROUP_2A:
         case SI4735_GROUP_2B:

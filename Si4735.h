@@ -345,6 +345,10 @@
 #define SI4735_RDS_PI_AREA_NATIONAL 0x02
 #define SI4735_RDS_PI_AREA_SUPRAREGIONAL 0x03
 #define SI4735_RDS_PI_AREA_REGIONAL_FIRST 0x04
+#define SI4735_RDS_AF_FILLER 0xCD
+#define SI4735_RDS_AF_NODATA 0xE0
+#define SI4735_RDS_AF_FOLLOWS_FM_FIRST 0xE1
+#define SI4735_RDS_AF_FOLLOWS_AM 0xFA
 
 //This holds the current station reception metrics as given by the chip. See
 //the Si4735 datasheet for a detailed explanation of each member.
@@ -380,6 +384,12 @@ typedef struct __attribute__ ((__packed__)) {
   byte program;
 } TRDSPI;
 
+typedef struct __attribute__ ((__packed__)) {
+  uint8_t day:5;
+  uint8_t hour:5;
+  uint8_t minute:6;
+} TRDSPIN;
+
 typedef struct {
     union {
       word programIdentifier;
@@ -390,6 +400,11 @@ typedef struct {
     char programService[9];
     char programTypeName[9];
     char radioText[65];
+    byte alternativeFrequecies[2];
+    union {
+      word programItemNumber;
+      TRDSPIN PIN;
+    };
 } Si4735_RDS_Data;
 
 class Si4735RDSDecoder
