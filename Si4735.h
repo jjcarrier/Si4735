@@ -340,6 +340,11 @@
 #define SI4735_RDS_DI_ARTIFICIAL_HEAD 0x02
 #define SI4735_RDS_DI_COMPRESSED 0x04
 #define SI4735_RDS_DI_DYNAMIC_PTY 0x08
+#define SI4735_RDS_PI_AREA_LOCAL 0x00
+#define SI4735_RDS_PI_AREA_INTERNATIONAL 0x01
+#define SI4735_RDS_PI_AREA_NATIONAL 0x02
+#define SI4735_RDS_PI_AREA_SUPRAREGIONAL 0x03
+#define SI4735_RDS_PI_AREA_REGIONAL_FIRST 0x04
 
 //This holds the current station reception metrics as given by the chip. See
 //the Si4735 datasheet for a detailed explanation of each member.
@@ -369,9 +374,17 @@ typedef struct {
     int8_t tm_tz;
 }  Si4735_RDS_Time;
 
+typedef struct __attribute__ ((__packed__)) {
+  uint8_t country:4;
+  uint8_t area:4;
+  byte program;
+} TRDSPI;
+
 typedef struct {
-    //PI is already taken :-(
-    word programIdentifier;
+    union {
+      word programIdentifier;
+      TRDSPI programIdentifierEBU;
+    };
     bool TP, TA, MS;
     byte PTY, DICC;
     char programService[9];
@@ -476,10 +489,13 @@ class Si4735Translate
         /*
         * Description:
         *   Decodes the station callsign out of the PI using the method
-        *   defined in the RDBS standard for North America.
+        *   defined in the RDBS standard for North America. If not under RDBS,
+        *   you don't need to call this as you can directly access the decoded
+        *   version via the fields of Si4735_RDS_Data.programIdentifierEBU.
+        * 
         * Parameters:
         *   programIdentifier - a word containing the Program Identifier value
-        *                       from RDS
+        *                       from RDBS
         *   callSign - pointer to a char[] at least 5 characters long that
         *              receives the decoded station call sign
         */
