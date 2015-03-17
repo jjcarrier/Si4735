@@ -400,7 +400,7 @@ typedef struct {
     char programService[9];
     char programTypeName[9];
     char radioText[65];
-    byte alternativeFrequecies[2];
+    byte alternativeFrequencies[2];
     union {
       word programItemNumber;
       TRDSPIN PIN;
@@ -541,7 +541,7 @@ class Si4735Translate
         *   Translates a timezone value to a human readable measurement in
         *   minutes.
         */
-        int16_t Si4735Translate::decodeTZValue(int8_t tz);
+        int16_t decodeTZValue(int8_t tz);
 };
 
 class Si4735
@@ -594,8 +594,11 @@ class Si4735
         *                 1MHz by setting this to false.
         *                 NOTE: this is ignored for I2C mode which always uses
         *                 100kHz.
+        *   interrupt   - Interrupt mode is to be used (as opposed to polling)
+        *                 when waiting for the chip to perform an operation.
         */
-        void begin(byte mode, bool xosc = true, bool slowshifter = true);
+        void begin(byte mode, bool xosc = true, bool slowshifter = true,
+                   bool interrupt = false);
 
         /*
         * Description:
@@ -681,8 +684,10 @@ class Si4735
         *   If in FM mode and the chip has received any RDS block, fetch it
         *   off the chip and fill word block[4] with it, returning true;
         *   otherwise return false without side-effects.
-        *   This function needs to be actively called (e.g. from loop()) in
-        *   order to see sensible information.
+        *   As RDS has a [mandated by standard] constant transmission rate of
+        *   11.4 groups per second, you should actively call this function (e.g.
+        *   from loop()) so that you read most if not all of the error-corrected
+        *   RDS groups received.
         */
         bool readRDSBlock(word* block);
 
@@ -768,8 +773,6 @@ class Si4735
         * Description:
         *   Gets the current status (short read) of the radio. Learn more
         *   about the status byte in the Si4735 Datasheet.
-        * Returns:
-        *   The status of the radio.
         */
         byte getStatus(void);
 
@@ -809,11 +812,12 @@ class Si4735
         *   Sets the Mode of the radio.
         * Parameters:
         *   mode      - the new mode of operation (see SI4735_MODE_*).
-        *   powerdown - power the chip down first, as required by datasheet.
+        *   powerdown - power cycle the chip first.
         *   xosc      - an external 32768Hz oscillator is present.
+        *   interrupt - use interrupts (instead of polling) to wait on the chip.
         */
         void setMode(byte mode, bool powerdown = true,
-                     bool xosc = true);
+                     bool xosc = true, bool interrupt = false);
 
         /*
         * Description:
@@ -832,10 +836,12 @@ class Si4735
         word getProperty(word property);
 
     private:
-        byte _pinPower, _pinReset, _pinGPO2, _pinSDIO, _pinGPO1, _pinSCLK,
-             _pinSEN;
-        byte _mode, _response[16], _i2caddr;
-        bool _haverds;
+        byte _pinPower, _pinReset, _pinGPO2, _pinSDIO, _pinGPO1, _pinSCLK;
+        static byte _pinSEN;
+        byte _mode, _response[16];
+        static byte _i2caddr;
+        bool _haverds, _interrupt;
+        static volatile byte _status;
 
         /*
         * Description:
@@ -856,6 +862,27 @@ class Si4735
         *   Performs actions common to all tuning modes.
         */
         void completeTune(void);
+
+        /*
+        * Description:
+        *   Services interrupts from the Si4735.
+        */
+        static void interruptServiceRoutine(void);
+
+        /*
+        * Description:
+        *   Requests the status (short read) of the last command from the chip.
+        */
+        static void updateStatus(void);
+
+        /*
+        * Description:
+        *   Does the actual work of sending the command to the chip.
+        */
+        static void sendCommandInternal(byte command, byte arg1 = 0,
+                                        byte arg2 = 0, byte arg3 = 0,
+                                        byte arg4 = 0, byte arg5 = 0,
+                                        byte arg6 = 0, byte arg7 = 0);
 };
 
 #endif

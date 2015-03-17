@@ -51,7 +51,6 @@
 #define SI4735_RDS_TIME_MJD1_MASK word(0x0003)
 #define SI4735_RDS_TIME_MJD1_SHL 15
 
-
 //Define RDS group types
 #define SI4735_GROUP_0A 0x00
 #define SI4735_GROUP_0B 0x01

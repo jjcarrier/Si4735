@@ -50,7 +50,8 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             if(grouptype == SI4735_GROUP_0A) {
                 //NOTE: the total length of the AF list is unknown so the best
                 //      we can do is to make it available as we receive it.
-                _status.alternativeFrequencies = block[2];
+                _status.alternativeFrequencies[0] = highByte(block[2]);
+                _status.alternativeFrequencies[1] = lowByte(block[2]);
             }
             break;
         case SI4735_GROUP_1A:
@@ -438,7 +439,7 @@ Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
     }
 }
 
-void Si4735::begin(byte mode, bool xosc, bool slowshifter){
+void Si4735::begin(byte mode, bool xosc, bool slowshifter, bool interrupt){
     //Start by resetting the Si4735 and configuring the communication protocol
     if(_pinPower != SI4735_PIN_POWER_HW) pinMode(_pinPower, OUTPUT);
     pinMode(_pinReset, OUTPUT);
@@ -470,12 +471,12 @@ void Si4735::begin(byte mode, bool xosc, bool slowshifter){
     };
     digitalWrite((_i2caddr ? SCL : SCK), LOW);
     //Datasheet calls for no rising SCLK edge 300ns before RESET rising edge,
-    //but Arduino can only go as low as 3us.
-    delayMicroseconds(5);
+    //but Arduino can only go as low as ~1us.
+    delayMicroseconds(1);
     digitalWrite(_pinReset, HIGH);
-    //Datasheet calls for 30ns from rising edge of RESET until GPO1/GPO2 bus
-    //mode selection completes, but Arduino can only go as low as 3us.
-    delayMicroseconds(5);
+    //Datasheet calls for 30ns delay; an Arduino running at 20MHz (4MHz
+    //faster than the Uno. mind you) has a clock period of 50ns so no action
+    //needed.
 
     if(!_i2caddr) {
         //Now configure the I/O pins properly
@@ -511,13 +512,11 @@ void Si4735::begin(byte mode, bool xosc, bool slowshifter){
 #endif
     };
 
-    setMode(mode, false, xosc);
+    setMode(mode, false, xosc, interrupt);
 }
 
 void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
                          byte arg4, byte arg5, byte arg6, byte arg7){
-    byte status;
-
 #if defined(SI4735_DEBUG)
     Serial.print("Si4735 CMD 0x");
     Serial.print(command, HEX);
@@ -554,11 +553,18 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
     Serial.flush();
 #endif
 
+    waitForInterrupt(SI4735_STATUS_CTS);
+    sendCommandInternal(command, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
+void Si4735::sendCommandInternal(byte command, byte arg1, byte arg2, byte arg3,
+                                 byte arg4, byte arg5, byte arg6, byte arg7){
     if(!_i2caddr) {
 #if !defined(SI4735_NOSPI)
         digitalWrite(_pinSEN, LOW);
-        //Datasheet calls for 30ns, Arduino can only go as low as 3us
-        delayMicroseconds(5);
+        //Datasheet calls for 30ns delay; an Arduino running at 20MHz (4MHz
+        //faster than the Uno. mind you) has a clock period of 50ns so no action
+        //needed.
         SPI.transfer(SI4735_CP_WRITE8);
         SPI.transfer(command);
         SPI.transfer(arg1);
@@ -568,8 +574,9 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
         SPI.transfer(arg5);
         SPI.transfer(arg6);
         SPI.transfer(arg7);
-        //Datahseet calls for 5ns, Arduino can only go as low as 3us
-        delayMicroseconds(5);
+        //Datasheet calls for 5ns delay; an Arduino running at 20MHz (4MHz
+        //faster than the Uno. mind you) has a clock period of 50ns so no action
+        //needed.
         digitalWrite(_pinSEN, HIGH);
 #endif
     } else {
@@ -586,18 +593,7 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
         Wire.endTransmission();
 #endif
     };
-
-    //Each command takes a different time to decode inside the chip; readiness
-    //for next command and, indeed, availability/validity of reponse data is
-    //being signalled by CTS in status byte.
-    //Furthermore, the datasheet specifically mandates waiting for CTS to come
-    //back up before doing anything else, *including* attempting to read back
-    //the response from the last command sent.
-    //Therefore, we poll for CTS coming back up after we send the command.
-    do {
-        status = getStatus();
-    } while(!(status & SI4735_STATUS_CTS));
-}
+};
 
 void Si4735::setFrequency(word frequency){
     switch(_mode){
@@ -713,7 +709,7 @@ void Si4735::setSeekThresholds(byte SNR, byte RSSI){
 
 bool Si4735::readRDSBlock(word* block){
     //See if there's anything for us to do
-    if(!(_mode == SI4735_MODE_FM && (getStatus() & SI4735_STATUS_RDSINT)))
+    if(!(getStatus() & SI4735_STATUS_RDSINT))
         return false;
 
     _haverds = true;
@@ -783,18 +779,16 @@ void Si4735::unMute(bool minvol){
     setProperty(SI4735_PROP_RX_HARD_MUTE, word(0x00, 0x00));
 }
 
-byte Si4735::getStatus(void){
-    byte response = 0;
-
+void Si4735::updateStatus(void){
     if(!_i2caddr) {
 #if !defined(SI4735_NOSPI)
         digitalWrite(_pinSEN, LOW);
-        //Datasheet calls for 30ns, Arduino can only go as low as 3us
-        delayMicroseconds(5);
+        //Datasheet calls for 30ns delay; an Arduino running at 20MHz (4MHz
+        //faster than the Uno. mind you) has a clock period of 50ns so no action
+        //needed.
         SPI.transfer(SI4735_CP_READ1_GPO1);
-        response = SPI.transfer(0x00);
-        //Datahseet calls for 5ns, Arduino can only go as low as 3us
-        delayMicroseconds(5);
+        _status = SPI.transfer(0x00);
+        //Datahseet calls for 5ns delay; see comment above.
         digitalWrite(_pinSEN, HIGH);
 #endif
     } else {
@@ -803,22 +797,28 @@ byte Si4735::getStatus(void){
         //I2C runs at 100kHz when using the Wire library, 100kHz = 10us period
         //so wait 10 bit-times for something to become available.
         while(!Wire.available()) delayMicroseconds(100);
-        response = Wire.read();
+        _status = Wire.read();
 #endif
     };
-    return response;
+};
+
+byte Si4735::getStatus(void){
+    if(!_interrupt)
+        updateStatus();
+
+    return _status;
 }
 
 void Si4735::getResponse(byte* response){
     if(!_i2caddr) {
 #if !defined(SI4735_NOSPI)
         digitalWrite(_pinSEN, LOW);
-        //Datasheet calls for 30ns, Arduino can only go as low as 3us
-        delayMicroseconds(5);
+        //Datasheet calls for 30ns delay; an Arduino running at 20MHz (4MHz
+        //faster than the Uno. mind you) has a clock period of 50ns so no action
+        //needed.
         SPI.transfer(SI4735_CP_READ16_GPO1);
         for(int i = 0; i < 16; i++) response[i] = SPI.transfer(0x00);
-        //Datahseet calls for 5ns, Arduino can only go as low as 3us
-        delayMicroseconds(5);
+        //Datahseet calls for 5ns delay; see above comment.
         digitalWrite(_pinSEN, HIGH);
 #endif
     } else {
@@ -857,8 +857,9 @@ void Si4735::getResponse(byte* response){
 void Si4735::end(bool hardoff){
     sendCommand(SI4735_CMD_POWER_DOWN);
     if(hardoff) {
-        //datasheet calls for 10ns, Arduino can only go as low as 3us
-        delayMicroseconds(5);
+        //Datasheet calls for 10ns delay; an Arduino running at 20MHz (4MHz
+        //faster than the Uno. mind you) has a clock period of 50ns so no action
+        //needed.
 #if !defined(SI4735_NOSPI)
         if(!_i2caddr) SPI.end();
 #endif
@@ -880,38 +881,63 @@ void Si4735::setDeemphasis(byte deemph){
     }
 }
 
-void Si4735::setMode(byte mode, bool powerdown, bool xosc){
+void Si4735::setMode(byte mode, bool powerdown, bool xosc, bool interrupt){
     if(powerdown) end(false);
     _mode = mode;
+    //Everything below is done in polling mode as interrupt setup is incomplete.
+    if (_interrupt)
+      detachInterrupt(_pinGPO2);
+    _interrupt = false;
 
     switch(_mode){
         case SI4735_MODE_FM:
-            sendCommand(SI4735_CMD_POWER_UP,
-                        ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 :
-                         SI4735_FLG_GPO2IEN) |
-                        (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_FM,
-                        SI4735_OUT_ANALOG);
+            sendCommand(
+                SI4735_CMD_POWER_UP,
+                SI4735_FLG_CTSIEN |
+                ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 : SI4735_FLG_GPO2IEN) |
+                (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_FM,
+                SI4735_OUT_ANALOG);
             break;
         case SI4735_MODE_AM:
         case SI4735_MODE_SW:
         case SI4735_MODE_LW:
-            sendCommand(SI4735_CMD_POWER_UP,
-                        ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 :
-                         SI4735_FLG_GPO2IEN) |
-                        (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_AM,
-                        SI4735_OUT_ANALOG);
+            sendCommand(
+                SI4735_CMD_POWER_UP,
+                SI4735_FLG_CTSIEN |
+                ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 : SI4735_FLG_GPO2IEN) |
+                (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_AM,
+                SI4735_OUT_ANALOG);
             break;
     }
 
     //Configure GPO lines to maximize stability (see datasheet for discussion)
     //No need to do anything for GPO1 if using SPI
     //No need to do anything for GPO2 if using interrupts
-    sendCommand(SI4735_CMD_GPIO_CTL, (_i2caddr ? SI4735_FLG_GPO1OEN : 0x00) |
-                                     ((_pinGPO2 == SI4735_PIN_GPO2_HW) ?
-                                     SI4735_FLG_GPO2OEN : 0x00));
+    sendCommand(SI4735_CMD_GPIO_CTL,
+                (_i2caddr ? SI4735_FLG_GPO1OEN : 0x00) |
+                ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? SI4735_FLG_GPO2OEN : 0x00));
     //Set GPO2 high if using interrupts as Si4735 has a LOW active INT line
     if(_pinGPO2 != SI4735_PIN_GPO2_HW)
       sendCommand(SI4735_CMD_GPIO_SET, SI4735_FLG_GPO2LEVEL);
+
+    //Enable CTS, end-of-seek and RDS interrupts (if in FM mode)
+    if(_pinGPO2 != SI4735_PIN_GPO2_HW)
+      setProperty(
+          SI4735_PROP_GPO_IEN,
+          word(0x00, (
+              SI4735_FLG_CTSIEN |
+              (_mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) |
+              SI4735_FLG_STCIEN));
+
+    //The chip is alive and interrupts have been configured on its side, switch
+    //ourselves to interrupt operation if so requested and if wiring was
+    //properly done.
+    _interrupt = interrupt && _pinGPO2 != SI4735_PIN_GPO2_HW;
+
+    if (_interrupt) {
+      attachInterrupt(_pinGPO2, Si4735::interruptServiceRoutine, FALLING);
+      interrupts();
+    };
 
     //Disable Mute
     unMute();
@@ -931,21 +957,13 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc){
             setProperty(SI4735_PROP_AM_SEEK_BAND_BOTTOM, 0x0117);
             break;
     }
-
-    //Enable end-of-seek and RDS interrupts, if we're actually using interrupts
-    //TODO: write interrupt handlers for STCINT and RDSINT
-    if(_pinGPO2 != SI4735_PIN_GPO2_HW)
-      setProperty(
-          SI4735_PROP_GPO_IEN,
-          word(0x00, ((_mode == SI4735_MODE_FM) ? SI4735_FLG_RDSIEN : 0x00) |
-                     SI4735_FLG_STCIEN));
 }
 
 void Si4735::setProperty(word property, word value){
     sendCommand(SI4735_CMD_SET_PROPERTY, 0x00, highByte(property),
                 lowByte(property), highByte(value), lowByte(value));
     //Datasheet states SET_PROPERTY completes 10ms after sending the command
-    //irrespective of CTS coming up earlier than that
+    //irrespective of CTS coming up earlier than that, so we wait anyway.
     delay(10);
 }
 
@@ -970,16 +988,19 @@ void Si4735::enableRDS(void){
 }
 
 void Si4735::waitForInterrupt(byte which){
-    while(!(getStatus() & which)){
-        //Balance being snappy with hogging the chip
-        delay(125);
+    while(!(getStatus() & which))
+      if(!_interrupt)
         sendCommand(SI4735_CMD_GET_INT_STATUS);
-    }
 }
 
 void Si4735::completeTune(void) {
+    //The datasheet strongly recommends that no other command (not only a tune
+    //or seek one) is sent until the current seek/tune operation is complete.
+    //We therefore sacrifice an oportunity for asynchronous operation in
+    //exchange for increased stability and block here until the seek/tune
+    //operation completes.
     waitForInterrupt(SI4735_STATUS_STCINT);
-    //Make future off-to-on STCINT transitions visible
+    //Make future off-to-on STCINT transitions visible (again).
     switch(_mode){
         case SI4735_MODE_FM:
                 sendCommand(SI4735_CMD_FM_TUNE_STATUS, SI4735_FLG_INTACK);
@@ -992,3 +1013,26 @@ void Si4735::completeTune(void) {
     }
     if(_mode == SI4735_MODE_FM) enableRDS();
 }
+
+void Si4735::interruptServiceRoutine(void) {
+    static volatile bool _getIntStatus = false;
+
+    if (!_getIntStatus) {
+      //Datasheet is clear on the fact that CTS will be asserted before any
+      //command completes (i.e. decoding always takes less than execution);
+      //therefore we can always send GET_INT_STATUS here since we were just
+      //interrupted by the chip telling us it's at least ready for the next
+      //command.
+      sendCommandInternal(SI4735_CMD_GET_INT_STATUS);
+      _getIntStatus = true;
+    } else {
+      //The *INT bits in the status byte are now guaranteed to be updated.
+      updateStatus();
+      //Re-arm flip-flop.
+      _getIntStatus = false;
+    };
+};
+
+volatile byte Si4735::_status = 0x00;
+byte Si4735::_pinSEN = SI4735_PIN_SEN;
+byte Si4735::_i2caddr = 0x00;
