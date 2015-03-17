@@ -28,13 +28,14 @@ HARDWARE NOTES:
  * The Si4735 is a 3.3V I/O chip whereas the Arduino Uno/Mega are 5V I/O. This
    means you will need to use logic level shifters if you are trying to use
    the Breakout Board version with the latter.
-   If you're using the Shield, you should be ok save for a few fatal design
-   mistakes SparkFun introduced. There are various hacks around to work around
-   those, my personal recommendation is that you go for a real level shifter.
-   Please note that BOB-08745 is cheaper than BOB-10403 mainly because it's a
+   If you're using the Shield, you should be OK save for a few fatal design
+   mistakes SparkFun introduced. There are various ways to work around those, my
+   personal recommendation is that you go for a real level shifter.
+   Please note that BOB-12009 is cheaper than BOB-11771 mainly because it's a
    lot slower. For casual applications speed shouldn't matter, but if you need
    to push the SPI interface to its limit, go for the expensive version if you
-   need to translate between a 5V I/O Arduino and the Si4735.
+   need to translate between a 5V I/O Arduino and the Si4735. On the same vein,
+   ONLY the BOB-11955 will work for logic level shifting in I2C mode.
  * If you're using the Breakout Board, make sure you tell the code whether or
    not you connected a 32768Hz oscillator to the RCLK and DCLK pins. See the
    schematic for the Shield for reference.
