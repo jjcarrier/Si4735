@@ -840,7 +840,7 @@ class Si4735
         static byte _pinSEN;
         byte _mode, _response[16];
         static byte _i2caddr;
-        bool _haverds, _interrupt;
+        bool _haverds, _interrupt, _seeking;
         static volatile byte _status;
 
         /*

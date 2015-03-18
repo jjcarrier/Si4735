@@ -552,8 +552,14 @@ void Si4735::sendCommand(byte command, byte arg1, byte arg2, byte arg3,
     Serial.println("])");
     Serial.flush();
 #endif
-
-    waitForInterrupt(SI4735_STATUS_CTS);
+    if (_seeking) {
+      //The datasheet strongly recommends that no other command (not only a tune
+      //or seek one and except GET_INT_STATUS) is sent until the current
+      //seek/tune operation is complete.
+      //NOTE: the datasheet makes it clear STC implies CTS.
+      waitForInterrupt(SI4735_STATUS_STCINT);
+      _seeking = false;
+    } else waitForInterrupt(SI4735_STATUS_CTS);
     sendCommandInternal(command, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
@@ -884,6 +890,7 @@ void Si4735::setDeemphasis(byte deemph){
 void Si4735::setMode(byte mode, bool powerdown, bool xosc, bool interrupt){
     if(powerdown) end(false);
     _mode = mode;
+    _seeking = false;
     //Everything below is done in polling mode as interrupt setup is incomplete.
     if (_interrupt)
       detachInterrupt(_pinGPO2);
@@ -994,12 +1001,8 @@ void Si4735::waitForInterrupt(byte which){
 }
 
 void Si4735::completeTune(void) {
-    //The datasheet strongly recommends that no other command (not only a tune
-    //or seek one) is sent until the current seek/tune operation is complete.
-    //We therefore sacrifice an oportunity for asynchronous operation in
-    //exchange for increased stability and block here until the seek/tune
-    //operation completes.
-    waitForInterrupt(SI4735_STATUS_STCINT);
+    //Make sendCommand() below block until the seek/tune operation completes.
+    _seeking = true;
     //Make future off-to-on STCINT transitions visible (again).
     switch(_mode){
         case SI4735_MODE_FM:
