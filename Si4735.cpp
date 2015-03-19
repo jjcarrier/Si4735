@@ -45,9 +45,9 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             _status.MS = block[1] & SI4735_RDS_MS;
             DIPSA = lowByte(block[1] & SI4735_RDS_DIPS_ADDRESS);
             bitWrite(_status.DICC, 3 - DIPSA, block[1] & SI4735_RDS_DI);
-            twochars = switchEndian(block[3]);
-            strncpy(&_status.programService[DIPSA * 2], (char *)&twochars, 2);
             if(grouptype == SI4735_GROUP_0A) {
+                twochars = switchEndian(block[3]);
+                strncpy(&_status.programService[DIPSA * 2], (char *)&twochars, 2);
                 //NOTE: the total length of the AF list is unknown so the best
                 //      we can do is to make it available as we receive it.
                 _status.alternativeFrequencies[0] = highByte(block[2]);
@@ -56,8 +56,22 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             break;
         case SI4735_GROUP_1A:
         case SI4735_GROUP_1B:
+            _status.linkageActuator = block[2] & SI4735_RDS_SLABEL_LA;
+            switch((block[2] & SI4735_RDS_SLABEL_MASK) >> SI4735_RDS_SLABEL_SHR) {
+                case SI4735_RDS_SLABEL_TYPE_PAGINGECC:
+                  _status.extendedCountryCode = lowByte(block[2]);
+                break;
+                case SI4735_RDS_SLABEL_TYPE_TMCID:
+                  _status.tmcIdentification = block[2] & SI4735_RDS_SLABEL_VALUE_MASK;
+                break;
+                case SI4735_RDS_SLABEL_TYPE_PAGINGID:
+                  _status.pagingIdentification = block[2] & SI4735_RDS_SLABEL_VALUE_MASK;
+                break;
+                case SI4735_RDS_SLABEL_TYPE_LANGUAGE:
+                  _status.languageCode = lowByte(block[2]);
+                break;
+            };
             _status.programItemNumber = block[3];
-            //TODO: read the standard and do slow labeling codes
             break;
         case SI4735_GROUP_2A:
         case SI4735_GROUP_2B:
@@ -178,13 +192,10 @@ bool Si4735RDSDecoder::getRDSTime(Si4735_RDS_Time* rdstime){
 }
 
 void Si4735RDSDecoder::resetRDS(void){
-    memset(_status.programService, ' ', sizeof(_status.programService));
-    _status.programService[sizeof(_status.programService) - 1] = '\0';
-    memset(_status.programTypeName, ' ', sizeof(_status.programTypeName));
-    _status.programTypeName[sizeof(_status.programTypeName) - 1] = '\0';
-    memset(_status.radioText, ' ', sizeof(_status.radioText));
-    _status.radioText[sizeof(_status.programTypeName) - 1] = '\0';
-    _status.DICC = 0;
+    memset(&_status, 0x00, sizeof(_status));
+    memset(_status.programService, ' ', sizeof(_status.programService) - 1);
+    memset(_status.programTypeName, ' ', sizeof(_status.programTypeName) - 1);
+    memset(_status.radioText, ' ', sizeof(_status.radioText) - 1);
     _rdstextab = false;
     _rdsptynab = false;
     _havect = false;

@@ -405,6 +405,11 @@ typedef struct {
       word programItemNumber;
       TRDSPIN PIN;
     };
+    bool linkageActuator;
+    byte extendedCountryCode;
+    byte languageCode;
+    word tmcIdentification;
+    word pagingIdentification;
 } Si4735_RDS_Data;
 
 class Si4735RDSDecoder
