@@ -350,6 +350,14 @@
 #define SI4735_RDS_AF_FOLLOWS_FM_FIRST 0xE1
 #define SI4735_RDS_AF_FOLLOWS_AM 0xFA
 
+//RDS Decoder callback types
+#define SI4735_RDS_CALLBACK_AF 0x00
+#define SI4735_RDS_CALLBACK_TDC 0x01
+#define SI4735_RDS_CALLBACK_AID 0x02
+#define SI4735_RDS_CALLBACK_ODA 0x03
+#define SI4735_RDS_CALLBACK_EON 0x04
+#define SI4735_RDS_CALLBACK_LAST 0x05
+
 //This holds the current station reception metrics as given by the chip. See
 //the Si4735 datasheet for a detailed explanation of each member.
 typedef struct {
@@ -390,27 +398,111 @@ typedef struct __attribute__ ((__packed__)) {
   uint8_t minute:6;
 } TRDSPIN;
 
+typedef struct __attribute__ ((__packed__)) {
+  uint8_t romClassNumber:5;
+  uint16_t serialNumber:10;
+  uint8_t scopeFlag:1;
+} TRDSIRDSMessage;
+
+typedef struct __attribute__ ((__packed__)) {
+  uint8_t variantCode:2;
+  union {
+    struct {
+      uint8_t unused:2;
+      uint8_t locationTableNumber:6;
+      uint8_t alternateFrequencyIndicator:1;
+      uint8_t mode:1;
+      uint8_t international:1;
+      uint8_t national:1;
+      uint8_t regional:1;
+      uint8_t urban:1;
+    };
+    struct {
+      uint8_t gapParameter:2;
+      uint8_t serviceIdentifier:6;
+      uint8_t activityTime:2;
+      uint8_t windowTime:2;
+      uint8_t delayTime:2;
+    };
+  };
+} TRDSTMCMessage;
+
+typedef struct {
+  word applicationIdentification;
+  word message;
+  byte carriedInGroup;
+} TRDSAppID;
+
+typedef struct __attribute__ ((__packed__)) {
+  uint8_t linkageActuator:1;
+  uint8_t extendedGeneric:1;
+  uint8_t internationalLinkageSet:1;
+  uint16_t linkageSet:12;
+} TRDSLinkageInformation;
+
 typedef struct {
     union {
-      word programIdentifier;
-      TRDSPI programIdentifierEBU;
+        word programIdentifier;
+        TRDSPI programIdentifierEBU;
+    };
+    bool TP, TA;
+    byte PTY;
+    char programService[9];
+    union {
+      word programItemNumber;
+      TRDSPIN PIN;
+    };
+    TRDSLinkageInformation linkageInformation;
+} TRDSEON;
+
+typedef struct {
+    union {
+        word programIdentifier;
+        TRDSPI programIdentifierEBU;
     };
     bool TP, TA, MS;
     byte PTY, DICC;
     char programService[9];
     char programTypeName[9];
     char radioText[65];
-    byte alternativeFrequencies[2];
     union {
-      word programItemNumber;
-      TRDSPIN PIN;
+        word programItemNumber;
+        TRDSPIN PIN;
     };
     bool linkageActuator;
     byte extendedCountryCode;
     byte languageCode;
     word tmcIdentification;
     word pagingIdentification;
+    TRDSAppID IRDS;
+    TRDSAppID TMC;
+    TRDSEON EON;
 } Si4735_RDS_Data;
+
+//RDS Decoder callback prototype.
+//In general, the first argument is the semantic equivalent of the segment
+//address, the second is true if this was an A group and the third parameter
+//contains meaningful data; while the last two parameters are data from the
+//particular RDS group blocks C and D.
+//SI4735_RDS_CALLBACK_AF:
+//    First parameter always 0x00, second always true, third contains one pair
+//    of AF codes, as presented in a 0A group.
+//SI4735_RDS_CALLBACK_TDC:
+//    First parameter contains the segment address, second true if this was a
+//    5A group, third and fourth contain data in blocks C and D of source group.
+//SI4735_RDS_CALLBACK_AID:
+//    First parameter contains the carried in group, second always true, third
+//    and fourth contain the application message and AID.
+//SI4735_RDS_CALLBACK_ODA:
+//    First parameter contains the first 5 bits of ODA data, second is true if
+//    data comes from an A group, third and fourth contain the remaining 32 bits
+//    of ODA data.
+//SI4735_RDS_CALLBACK_EON:
+//    First parameter is 1 if this is an AF pair (variant 4), 2 if this is a
+//    mapped FM frequency pair (variants 5-8) or 3 if this is a mapped AM
+//    frequency pair (variant 9); second is always true, third contains the
+//    frequency pair and the fourth is always zero.
+typedef void (*TRDSCallback)(byte, bool, word, word);
 
 class Si4735RDSDecoder
 {
@@ -420,6 +512,15 @@ class Si4735RDSDecoder
         *   Default constructor.
         */
         Si4735RDSDecoder() { resetRDS(); }
+
+        /*
+        * Description:
+        *   Registers a new callback of the given type, which is one of the
+        *   Si4735_RDS_CALLBACK_* constants. The second parameter is the
+        *   callback. Using NULL for the second parameter causes the currently
+        *   registered callback of this type (if any) to be removed.
+        */
+        void registerCallback(byte type, TRDSCallback callback = NULL);
 
         /*
         * Description:
@@ -464,6 +565,7 @@ class Si4735RDSDecoder
         Si4735_RDS_Data _status;
         Si4735_RDS_Time _time;
         bool _rdstextab, _rdsptynab, _havect;
+        TRDSCallback _callbacks[SI4735_RDS_CALLBACK_LAST];
 #if defined(SI4735_DEBUG)
         word _rdsstats[32];
 #endif

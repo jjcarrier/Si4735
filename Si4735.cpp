@@ -20,6 +20,11 @@
 # include <Wire.h>
 #endif
 
+void Si4735RDSDecoder::registerCallback(byte type, TRDSCallback callback){
+    if (type < sizeof(_callbacks) / sizeof(_callbacks[0]))
+        _callbacks[type] = callback;
+};
+
 void Si4735RDSDecoder::decodeRDSBlock(word block[]){
     byte grouptype;
     word fourchars[2];
@@ -48,29 +53,27 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             if(grouptype == SI4735_GROUP_0A) {
                 twochars = switchEndian(block[3]);
                 strncpy(&_status.programService[DIPSA * 2], (char *)&twochars, 2);
-                //NOTE: the total length of the AF list is unknown so the best
-                //      we can do is to make it available as we receive it.
-                _status.alternativeFrequencies[0] = highByte(block[2]);
-                _status.alternativeFrequencies[1] = lowByte(block[2]);
+                if (_callbacks[SI4735_RDS_CALLBACK_AF])
+                    _callbacks[SI4735_RDS_CALLBACK_AF](0x00, true, block[2], 0x00);
             }
             break;
         case SI4735_GROUP_1A:
-        case SI4735_GROUP_1B:
             _status.linkageActuator = block[2] & SI4735_RDS_SLABEL_LA;
             switch((block[2] & SI4735_RDS_SLABEL_MASK) >> SI4735_RDS_SLABEL_SHR) {
                 case SI4735_RDS_SLABEL_TYPE_PAGINGECC:
-                  _status.extendedCountryCode = lowByte(block[2]);
-                break;
+                    _status.extendedCountryCode = lowByte(block[2]);
+                    break;
                 case SI4735_RDS_SLABEL_TYPE_TMCID:
-                  _status.tmcIdentification = block[2] & SI4735_RDS_SLABEL_VALUE_MASK;
-                break;
+                    _status.tmcIdentification = block[2] & SI4735_RDS_SLABEL_VALUE_MASK;
+                    break;
                 case SI4735_RDS_SLABEL_TYPE_PAGINGID:
-                  _status.pagingIdentification = block[2] & SI4735_RDS_SLABEL_VALUE_MASK;
-                break;
+                    _status.pagingIdentification = block[2] & SI4735_RDS_SLABEL_VALUE_MASK;
+                    break;
                 case SI4735_RDS_SLABEL_TYPE_LANGUAGE:
-                  _status.languageCode = lowByte(block[2]);
-                break;
+                    _status.languageCode = lowByte(block[2]);
+                    break;
             };
+        case SI4735_GROUP_1B:
             _status.programItemNumber = block[3];
             break;
         case SI4735_GROUP_2A:
@@ -79,7 +82,7 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
 
             if((block[1] & SI4735_RDS_TEXTAB) != _rdstextab) {
                 _rdstextab = !_rdstextab;
-                memset(_status.radioText, ' ', 64);
+                memset(_status.radioText, ' ', sizeof(_status.radioText) - 1);
             }
             RTA = lowByte(block[1] & SI4735_RDS_TEXT_ADDRESS);
             RTAW = (grouptype == SI4735_GROUP_2A) ? 4 : 2;
@@ -90,7 +93,27 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             strncpy(&_status.radioText[RTA * RTAW], (char *)fourchars, RTAW);
             break;
         case SI4735_GROUP_3A:
-            //TODO: read the standard and do AID listing
+            switch(block[3]){
+                case SI4735_RDS_AID_DEFAULT:
+                    if (block[1] & SI4735_RDS_ODA_GROUP_MASK == SI4735_GROUP_8A) {
+                      _status.TMC.carriedInGroup = SI4735_GROUP_8A;
+                      _status.TMC.message = block[2];
+                    };
+                    break;
+                case SI4735_RDS_AID_IRDS:
+                    _status.IRDS.carriedInGroup = block[1] & SI4735_RDS_ODA_GROUP_MASK;
+                    _status.IRDS.message = block[2];
+                    break;
+                case SI4735_RDS_AID_TMC:
+                    _status.TMC.carriedInGroup = block[1] & SI4735_RDS_ODA_GROUP_MASK;
+                    _status.TMC.message = block[2];
+                    break;
+                default:
+                    if (_callbacks[SI4735_RDS_CALLBACK_AID])
+                        _callbacks[SI4735_RDS_CALLBACK_AID](
+                            block[1] & SI4735_RDS_ODA_GROUP_MASK, true,
+                            block[2], block[3]);
+            };
             break;
         case SI4735_GROUP_3B:
         case SI4735_GROUP_4B:
@@ -105,7 +128,11 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
         case SI4735_GROUP_12A:
         case SI4735_GROUP_12B:
         case SI4735_GROUP_13B:
-            //Application data payload (ODA), ignore for now
+            if (_callbacks[SI4735_RDS_CALLBACK_ODA])
+                _callbacks[SI4735_RDS_CALLBACK_ODA](
+                    block[1] & SI4735_RDS_ODA_GROUP_MASK, ! (grouptype & 0x01),
+                    ((grouptype & 0x01) ? 0x00 : block[2]), block[3]);
+
             break;
         case SI4735_GROUP_4A:
             unsigned long MJD, CT, ys;
@@ -141,7 +168,12 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             break;
         case SI4735_GROUP_5A:
         case SI4735_GROUP_5B:
-            //TODO: read the standard and do TDC listing
+            if (_callbacks[SI4735_RDS_CALLBACK_TDC])
+                _callbacks[SI4735_RDS_CALLBACK_TDC](
+                    block[1] & SI4735_RDS_ODA_GROUP_MASK,
+                    (grouptype == SI4735_GROUP_5A),
+                    ((grouptype == SI4735_GROUP_5A) ? block[2] : 0x00),
+                    block[3]);
             break;
         case SI4735_GROUP_7A:
             //TODO: read the standard and do Radio Paging
@@ -168,8 +200,48 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             //TODO: read the standard and do Enhanced Radio Paging
             break;
         case SI4735_GROUP_14A:
+            switch(block[1] & SI4735_RDS_EON_MASK){
+                case SI4735_RDS_EON_TYPE_PS_SA0:
+                case SI4735_RDS_EON_TYPE_PS_SA1:
+                case SI4735_RDS_EON_TYPE_PS_SA2:
+                case SI4735_RDS_EON_TYPE_PS_SA3:
+                    twochars = switchEndian(block[2]);
+                    strncpy(
+                        &_status.EON.programService[(block[1] & SI4735_RDS_EON_MASK) * 2],
+                        (char *)&twochars, 2);
+                    break;
+                case SI4735_RDS_EON_TYPE_AF:
+                    if (_callbacks[SI4735_RDS_CALLBACK_EON])
+                        _callbacks[SI4735_RDS_CALLBACK_EON](1, true, block[2], 0x00);
+                    break;
+                case SI4735_RDS_EON_TYPE_MF_FM0:
+                case SI4735_RDS_EON_TYPE_MF_FM1:
+                case SI4735_RDS_EON_TYPE_MF_FM2:
+                case SI4735_RDS_EON_TYPE_MF_FM3:
+                    if (_callbacks[SI4735_RDS_CALLBACK_EON])
+                        _callbacks[SI4735_RDS_CALLBACK_EON](2, true, block[2], 0x00);
+                    break;
+                case SI4735_RDS_EON_TYPE_MF_AM:
+                    if (_callbacks[SI4735_RDS_CALLBACK_EON])
+                        _callbacks[SI4735_RDS_CALLBACK_EON](3, true, block[2], 0x00);
+                    break;
+                case SI4735_RDS_EON_TYPE_LINKAGE:
+                    memcpy(&_status.EON.linkageInformation, &block[2],
+                           sizeof(_status.EON.linkageInformation));
+                    break;
+                case SI4735_RDS_EON_TYPE_PTYTA:
+                    _status.EON.PTY = (block[2] & SI4735_RDS_EON_PTY_MASK) >> SI4735_RDS_EON_PTY_SHR;
+                    _status.EON.TA = block[2] & SI4735_RDS_EON_TA_A;
+                    break;
+                case SI4735_RDS_EON_TYPE_PIN:
+                    _status.EON.programItemNumber = block[2];
+                    break;
+            };
         case SI4735_GROUP_14B:
-            //TODO: read the standard and do EON listing
+            _status.EON.TP = block[1] & SI4735_RDS_EON_TP;
+            _status.EON.programIdentifier = block[3];
+            if (grouptype == SI4735_GROUP_14B)
+                _status.EON.TA = block[1] & SI4735_RDS_EON_TA_B;
             break;
         case SI4735_GROUP_15A:
             //Withdrawn and currently unallocated, ignore
@@ -181,6 +253,7 @@ void Si4735RDSDecoder::getRDSData(Si4735_RDS_Data* rdsdata){
     makePrintable(_status.programService);
     makePrintable(_status.programTypeName);
     makePrintable(_status.radioText);
+    makePrintable(_status.EON.programService);
 
     *rdsdata = _status;
 }

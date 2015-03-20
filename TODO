@@ -2,4 +2,4 @@
 -> add HAL support (shift register routing for SEN and RESET) to the code
 -> implement missing parts of the RDS standard
 -> add HAL support (SPI/I2C arbitrator)
--> investigate implementing accessors for all published commands and moving all _CMD_* constants to -private.h and making sendCommand() private
+
