@@ -53,6 +53,8 @@
 
 //Define RDS ODA (group 3A) values and decoding masks
 #define SI4735_RDS_AID_DEFAULT 0x0000
+#define SI4735_RDS_AID_ERT 0x6552
+#define SI4735_RDS_AID_RTPLUS 0x4BD7
 #define SI4735_RDS_AID_IRDS 0xC563
 #define SI4735_RDS_AID_TMC 0xCD46 // 0xCD45 and 0xCD47 also seen in the wild
 #define SI4735_RDS_ODA_GROUP_MASK 0x1F

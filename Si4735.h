@@ -470,6 +470,7 @@ typedef struct {
         TRDSPIN PIN;
     };
     bool linkageActuator;
+    byte pagingOperatorCode;
     byte extendedCountryCode;
     byte languageCode;
     word tmcIdentification;
@@ -639,9 +640,9 @@ class Si4735Translate
         /*
         * Description:
         *   Translates an AF frequency code into a human readable measurement
-        *   in kHz (or tens of kHz if FM is true).
+        *   in kHz (or tens of kHz if FM is true), valid for the given locale.
         */
-        word decodeAFFrequency(byte AF, bool FM = true);
+        word decodeAFFrequency(byte AF, bool FM = true, byte locale);
 
         /*
         * Description:

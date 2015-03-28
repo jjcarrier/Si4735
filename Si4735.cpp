@@ -62,6 +62,7 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             switch((block[2] & SI4735_RDS_SLABEL_MASK) >> SI4735_RDS_SLABEL_SHR) {
                 case SI4735_RDS_SLABEL_TYPE_PAGINGECC:
                     _status.extendedCountryCode = lowByte(block[2]);
+                    _status.pagingOperatorCode = highByte(block[2]) & 0x0F;
                     break;
                 case SI4735_RDS_SLABEL_TYPE_TMCID:
                     _status.tmcIdentification = block[2] & SI4735_RDS_SLABEL_VALUE_MASK;
@@ -242,6 +243,7 @@ void Si4735RDSDecoder::decodeRDSBlock(word block[]){
             _status.EON.programIdentifier = block[3];
             if (grouptype == SI4735_GROUP_14B)
                 _status.EON.TA = block[1] & SI4735_RDS_EON_TA_B;
+               //TODO: implement PTY(ON): News/Weather/Alarm
             break;
         case SI4735_GROUP_15A:
             //Withdrawn and currently unallocated, ignore
@@ -341,6 +343,8 @@ const char Si4735_PTY2Text_S_Language[] PROGMEM = "Language";
 const char Si4735_PTY2Text_S_Personality[] PROGMEM = "Personality";
 const char Si4735_PTY2Text_S_Public[] PROGMEM = "Public";
 const char Si4735_PTY2Text_S_College[] PROGMEM = "College";
+const char Si4735_PTY2Text_S_Spanish[] PROGMEM = "Espanol";
+const char Si4735_PTY2Text_S_HipHop[] PROGMEM = "Hip hop";
 
 const char * const Si4735_PTY2Text_EU[32] PROGMEM = {
     Si4735_PTY2Text_S_None,
@@ -401,9 +405,9 @@ const char * const Si4735_PTY2Text_US[32] PROGMEM = {
     Si4735_PTY2Text_S_Personality,
     Si4735_PTY2Text_S_Public,
     Si4735_PTY2Text_S_College,
-    Si4735_PTY2Text_S_None,
-    Si4735_PTY2Text_S_None,
-    Si4735_PTY2Text_S_None,
+    Si4735_PTY2Text_S_Spanish,
+    Si4735_PTY2Text_S_Spanish,
+    Si4735_PTY2Text_S_HipHop,
     Si4735_PTY2Text_S_None,
     Si4735_PTY2Text_S_None,
     Si4735_PTY2Text_S_Weather,
@@ -449,6 +453,7 @@ byte Si4735Translate::translatePTY(byte PTY, byte fromlocale, byte tolocale){
 }
 
 void Si4735Translate::decodeCallSign(word programIdentifier, char* callSign){
+  //TODO: extend this to current NRSC-4-B format
     if(programIdentifier >= 21672){
         callSign[0] = 'W';
         programIdentifier -= 21672;
@@ -468,36 +473,38 @@ void Si4735Translate::decodeCallSign(word programIdentifier, char* callSign){
 }
 
 byte Si4735Translate::decodeTMCDistance(byte length) {
-  if (length == 0) return 0xFF;
-  else if (length > 0 && length <= 10) return length;
-  else if (length > 10 && length <= 15) return 10 + (length - 10) * 2;
-  else if (length > 15) return 20 + (length - 15) * 5;
+    if (length == 0) return 0xFF;
+    else if (length > 0 && length <= 10) return length;
+    else if (length > 10 && length <= 15) return 10 + (length - 10) * 2;
+    else if (length > 15) return 20 + (length - 15) * 5;
 }
 
 void Si4735Translate::decodeTMCDuration(byte length, Si4735_RDS_Time* tmctime) {
-  if (!tmctime) return;
-  else memset(tmctime, 0x00, sizeof(Si4735_RDS_Time));
+    if (!tmctime) return;
+    else memset(tmctime, 0x00, sizeof(Si4735_RDS_Time));
 
-  if (length <= 95) {
-    tmctime->tm_min = (length % 4) * 45;
-    tmctime->tm_hour = length / 4;
-  } else if (length > 95 && length <= 200) {
-    tmctime->tm_hour = (length - 95) % 24;
-    tmctime->tm_mday = (length - 95) / 24;
-  } else if (length > 200 && length < 231) {
-    tmctime->tm_mday = length - 200;
-  } else if (length > 231) {
-    // NOTE: according to RDS-TMC standard, this is expressed as half-month
-    // intervals. Therefore, this function will output things like Feb 30th
-    // with the understanding that the UI will render it appropriately.
-    tmctime->tm_mday = ((length - 231) * 15) % 31;
-    tmctime->tm_mon = ((length - 232) / 2) + 1;
-  };
+    if (length <= 95) {
+        tmctime->tm_min = (length % 4) * 45;
+        tmctime->tm_hour = length / 4;
+    } else if (length > 95 && length <= 200) {
+        tmctime->tm_hour = (length - 95) % 24;
+        tmctime->tm_mday = (length - 95) / 24;
+    } else if (length > 200 && length < 231) {
+        tmctime->tm_mday = length - 200;
+    } else if (length > 231) {
+        // NOTE: according to RDS-TMC standard, this is expressed as half-month
+        // intervals. Therefore, this function will output things like Feb 30th
+        // with the understanding that the UI will render it appropriately.
+        tmctime->tm_mday = ((length - 231) * 15) % 31;
+        tmctime->tm_mon = ((length - 232) / 2) + 1;
+    };
 };
 
-word Si4735Translate::decodeAFFrequency(byte AF, bool FM) {
-  if (FM) return (AF + 875) * 10;
-  else if (AF < 16) return (AF - 1) * 9 + 153;
+word Si4735Translate::decodeAFFrequency(byte AF, bool FM, byte locale) {
+    if (FM) return (AF + 875) * 10;
+    else if (AF < 16) return (AF - 1) * 9 + 153;
+    else if (locale == SI4735_LOCALE_US)
+        return (AF - 16) * 10 + 530;
     else return (AF - 16) * 9 + 531;
 };
 
