@@ -77,7 +77,7 @@ void setup()
 }
 
 void loop()
-{       
+{
   //Wait to do something until a character is received on the serial port.
   if(Serial.available() > 0){
     //Copy the incoming character to a variable and fold case
@@ -87,7 +87,7 @@ void loop()
       case 'R':
         //Get the latest response from the radio.
         radio.getResponse(response);
-        //Print all 16 bytes in the response to the terminal.      
+        //Print all 16 bytes in the response to the terminal.
         Serial.print(F("Si4735 RSP"));
         for(int i = 0; i < 4; i++) {
           if(i) Serial.print(F("           "));
@@ -104,7 +104,7 @@ void loop()
           };
           Serial.println("");
         };
-        Serial.flush();        
+        Serial.flush();
         break;
       case 'S':
         status = radio.getStatus();
@@ -113,12 +113,12 @@ void loop()
         Serial.print(" [");
         Serial.print(status, BIN);
         Serial.println("]");
-        Serial.flush();        
+        Serial.flush();
         break;
       case 'X':
         collectedDigits[0] = '\0';
         Serial.println(F("Command string truncated, start over."));
-        Serial.flush();        
+        Serial.flush();
         break;
       //If we get a LF or CR character, send the command to the radio.
       case '\n':
@@ -126,7 +126,7 @@ void loop()
         numDigits = strlen(collectedDigits);
         //Silently ignore empty lines, this also gives us CR & LF support
         if(numDigits) {
-          if(numDigits % 2){    
+          if(numDigits % 2){
             memset(command, 0x00, 8);
             for(int i = 0; i < (numDigits / 2) ; i++) {
               strncpy(&oneHexValue[2], &collectedDigits[i * 2], 2);
@@ -167,5 +167,5 @@ void loop()
         Serial.flush();
         break;
     }
-  }   
+  }
 }

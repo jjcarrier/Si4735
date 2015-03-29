@@ -25,7 +25,7 @@ void Si4735RDSDecoder::registerCallback(byte type, TRDSCallback callback){
         _callbacks[type] = callback;
 };
 
-void Si4735RDSDecoder::decodeRDSBlock(word block[]){
+void Si4735RDSDecoder::decodeRDSGroup(word block[]){
     byte grouptype;
     word fourchars[2];
 
@@ -804,15 +804,19 @@ void Si4735::setSeekThresholds(byte SNR, byte RSSI){
     }
 }
 
-bool Si4735::readRDSBlock(word* block){
+bool Si4735::readRDSGroup(word* block){
     //See if there's anything for us to do
     if(!(getStatus() & SI4735_STATUS_RDSINT))
         return false;
 
-    _haverds = true;
     //Grab the next available RDS group from the chip
     sendCommand(SI4735_CMD_FM_RDS_STATUS, SI4735_FLG_INTACK);
     getResponse(_response);
+    //Of course, we got here because the chip just interrupted us to tell it has
+    //received RDS data -- so much of it that the FIFO high-watermark was hit.
+    //Still, it never hurts to be consistent so we'll set _haverds to the chip's
+    //version of the facts (as opposed to a hardcoded true).
+    _haverds = _response[1] & SI4735_FLG_RDSSYNCFOUND;
     //memcpy() would be faster but it won't help since we're of a different
     //endianness than the device we're talking to.
     block[0] = word(_response[4], _response[5]);
@@ -1078,7 +1082,9 @@ void Si4735::enableRDS(void){
     if(_mode == SI4735_MODE_FM) {
         setProperty(SI4735_PROP_FM_RDS_INT_SOURCE, word(0x00,
                                                         SI4735_FLG_RDSRECV));
-        setProperty(SI4735_PROP_FM_RDS_INT_FIFO_COUNT, word(0x00, 0x01));
+        //Set the FIFO high-watermark to 12 RDS blocks, which is safe even for
+        //old chips, yet large enough to improve performance.
+        setProperty(SI4735_PROP_FM_RDS_INT_FIFO_COUNT, word(0x00, 0x0C));
         setProperty(SI4735_PROP_FM_RDS_CONFIG, word(SI4735_FLG_BLETHA_35 |
                     SI4735_FLG_BLETHB_35 | SI4735_FLG_BLETHC_35 |
                     SI4735_FLG_BLETHD_35, SI4735_FLG_RDSEN));
@@ -1088,6 +1094,14 @@ void Si4735::enableRDS(void){
 void Si4735::waitForInterrupt(byte which){
     while(!(getStatus() & which))
       if(!_interrupt)
+        if (which == SI4735_STATUS_STCINT)
+          //According to the datasheet, the chip would prefer we don't disturb
+          //it with serial communication while it's seeking or tuning into a
+          //station. Sleep for two channel seek-times to give it a rest.
+          //NOTE: this means seek/tune operations will not complete in less than
+          //120ms, regardless of signal quality. If you don't like this, switch
+          //to interrupt mode (like you should have, from the beginning).
+          delay(120);
         sendCommand(SI4735_CMD_GET_INT_STATUS);
 }
 

@@ -156,6 +156,8 @@
 #define SI4735_FLG_RDSSYNCFOUND 0x04
 #define SI4735_FLG_RDSSYNCLOST 0x02
 #define SI4735_FLG_RDSRECV 0x01
+#define SI4735_FLG_GRPLOST 0x04
+#define SI4735_FLG_RDSSYNC 0x01
 #define SI4735_FLG_AMPLFLT 0x01
 #define SI4735_FLG_AMCHFLT_6KHZ 0x00
 #define SI4735_FLG_AMCHFLT_4KHZ 0x01
@@ -525,9 +527,9 @@ class Si4735RDSDecoder
 
         /*
         * Description:
-        *   Decodes one RDS block and updates internal data structures.
+        *   Decodes one RDS group and updates internal data structures.
         */
-        void decodeRDSBlock(word block[]);
+        void decodeRDSGroup(word block[]);
 
         /*
         * Description:
@@ -642,7 +644,8 @@ class Si4735Translate
         *   Translates an AF frequency code into a human readable measurement
         *   in kHz (or tens of kHz if FM is true), valid for the given locale.
         */
-        word decodeAFFrequency(byte AF, bool FM = true, byte locale);
+        word decodeAFFrequency(byte AF, bool FM = true,
+                               byte locale = SI4735_LOCALE_EU);
 
         /*
         * Description:
@@ -789,15 +792,19 @@ class Si4735
 
         /*
         * Description:
-        *   If in FM mode and the chip has received any RDS block, fetch it
+        *   If in FM mode and the chip has received any RDS group, fetch it
         *   off the chip and fill word block[4] with it, returning true;
         *   otherwise return false without side-effects.
         *   As RDS has a [mandated by standard] constant transmission rate of
         *   11.4 groups per second, you should actively call this function (e.g.
         *   from loop()) so that you read most if not all of the error-corrected
-        *   RDS groups received.
+        *   RDS groups received. For example:
+        *   loop() {
+        *     while(Si4735::readRDSGroup(data))
+        *       Si4735RDSDecoder::decodeRDSGroup(data);
+        *   }
         */
-        bool readRDSBlock(word* block);
+        bool readRDSGroup(word* block);
 
         /*
         * Description:

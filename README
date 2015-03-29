@@ -10,8 +10,8 @@ Bug spotting in begin() -> setMode() interaction by Albert Tejera 5/24/2012
 
 This library is intended for use with the SparkFun Si4735 Shield or Breakout
 Board, however it should work with most Si47xx chips that share the same command
-language. At the time of this writing, the list includes: Si4700->Si4713,
-Si4720, Si4721, Si4730, Si4731, Si4734->Si4749, Si4784 and Si4785.
+language. At the time of this writing, the list includes: Si4704->Si4707,
+Si471x, Si472x, Si473x, Si4784 and Si4785.
 
 Originally released under the 'Buy Me a Beer' license (if we ever meet, you
 buy me a beer).

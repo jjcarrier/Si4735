@@ -92,7 +92,7 @@ void loop()
   //Attempt to update RDS information if any surfaced
   if(!(millis() % 250)) {
     radio.sendCommand(SI4735_CMD_GET_INT_STATUS);
-    if(radio.readRDSBlock(rdsblock)) decoder.decodeRDSBlock(rdsblock);
+    if(radio.readRDSGroup(rdsblock)) decoder.decodeRDSGroup(rdsblock);
   }
   
   //Wait until a character comes in on the Serial port.
