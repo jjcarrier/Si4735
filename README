@@ -22,7 +22,8 @@ is hereby released under the LGPL version 3.
 To the furthest extent that this is legally enforceable, the copyright remains
 with the authors listed above.
 
-See the example sketches to learn how to use the library in your code.
+See the example sketches to learn how to use the library in your code. Note
+that the RDS decoding functionality has moved to the RDSDecoder library.
 
 HARDWARE NOTES:
  * The Si4735 is a 3.3V I/O chip whereas the Arduino Uno/Mega are 5V I/O. This

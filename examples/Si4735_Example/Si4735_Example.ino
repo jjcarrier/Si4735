@@ -49,8 +49,6 @@
 *   q       - display signal quality metrics
 *   t       - display decoded status byte
 *   r       - display chip and firmware revision
-*   R       - display RDS data, if available
-*   T       - display RDS time, if available
 *   ?       - display this list
 *
 */
@@ -64,16 +62,12 @@
 
 //Create an instance of the Si4735 named radio
 Si4735 radio;
-//... and an RDS decoder to go with it.
-Si4735RDSDecoder decoder;
 //Other variables we will use below
 char command;
 byte mode, status;
-word frequency, rdsblock[4];
+word frequency;
 bool goodtune;
 Si4735_RX_Metrics RSQ;
-Si4735_RDS_Data station;
-Si4735_RDS_Time rdstime;
 char FW[3], REV;
 
 void setup()
@@ -89,18 +83,12 @@ void setup()
 
 void loop()
 {
-  //Attempt to update RDS information if any surfaced
-  if(!(millis() % 250)) {
-    radio.sendCommand(SI4735_CMD_GET_INT_STATUS);
-    if(radio.readRDSGroup(rdsblock)) decoder.decodeRDSGroup(rdsblock);
-  }
-  
   //Wait until a character comes in on the Serial port.
   if(Serial.available()){
     //Decide what to do based on the character received.
     command = Serial.read();
     switch(command){
-      case 'v': 
+      case 'v':
         if(radio.volumeDown()) Serial.println(F("Volume decreased"));
         else Serial.println(F("ERROR: already at minimum volume"));
         Serial.flush();
@@ -110,27 +98,27 @@ void loop()
         else Serial.println(F("ERROR: already at maximum volume"));
         Serial.flush();
         break;
-      case 's': 
+      case 's':
         Serial.println(F("Seeking down with band wrap-around"));
         Serial.flush();
         radio.seekDown();
         break;
-      case 'S': 
+      case 'S':
         Serial.println(F("Seeking up with band wrap-around"));
         Serial.flush();
         radio.seekUp();
         break;
-      case 'm': 
+      case 'm':
         radio.mute();
         Serial.println(F("Audio muted"));
         Serial.flush();
         break;
-      case 'M': 
+      case 'M':
         radio.unMute();
         Serial.println(F("Audio unmuted"));
         Serial.flush();
         break;
-      case 'f': 
+      case 'f':
         frequency = radio.getFrequency(&goodtune);
         mode = radio.getMode();
         Serial.print(F("Currently tuned to "));
@@ -155,7 +143,7 @@ void loop()
             break;
         }
         if(goodtune) Serial.println(F("* Valid tune"));
-        Serial.flush();        
+        Serial.flush();
         break;
       case 'L':
       case 'A':
@@ -180,7 +168,7 @@ void loop()
             radio.setMode(SI4735_MODE_FM);
             break;
         }
-        Serial.flush();        
+        Serial.flush();
         break;
       case 'q': 
         radio.getRSQ(&RSQ);
@@ -198,7 +186,7 @@ void loop()
           Serial.println("kHz");
         }
         Serial.println("}");
-        Serial.flush();        
+        Serial.flush();
         break;
       case 't':
         radio.sendCommand(SI4735_CMD_GET_INT_STATUS);
@@ -210,68 +198,20 @@ void loop()
         if(status & SI4735_STATUS_RSQINT)
           Serial.println(F("* Received Signal Quality interrupt"));
         if(status & SI4735_STATUS_RDSINT)
-          Serial.println(F("* RDS/RDBS interrupt"));            
+          Serial.println(F("* RDS/RBDS interrupt"));
         if(status & SI4735_STATUS_STCINT)
           Serial.println(F("* Seek/Tune Complete interrupt"));
         Serial.println("}");
-        Serial.flush();        
+        Serial.flush();
         break;
-      case 'r': 
+      case 'r':
         radio.getRevision(FW, NULL, &REV);
         Serial.print(F("This is a Si4735-"));
         Serial.print(REV);
         Serial.println(FW);
-        Serial.flush();        
+        Serial.flush();
         break;
-      case 'R': 
-        if(radio.isRDSCapable()) {
-          decoder.getRDSData(&station);
-          Serial.println(F("RDS information {"));
-          Serial.print("PI: ");
-          Serial.println(station.programIdentifier, HEX);
-          Serial.print("PTY: ");
-          Serial.println(station.PTY);
-          Serial.println("DI {");
-          if(station.DICC & SI4735_RDS_DI_DYNAMIC_PTY)
-            Serial.println(F("* Dynamic PTY"));
-          if(station.DICC & SI4735_RDS_DI_COMPRESSED)
-            Serial.println(F("* Audio Compression"));
-          if(station.DICC & SI4735_RDS_DI_ARTIFICIAL_HEAD)
-            Serial.println(F("* Artificial Head Recording"));
-          if(station.DICC & SI4735_RDS_DI_STEREO)
-            Serial.println(F("* Stereo Encoding"));
-          Serial.println("}");
-          if(station.TP) Serial.println(F("Traffic programme carried"));
-          if(station.TA) Serial.println(F("Traffic announcement underway"));
-          Serial.print(F("Currently broadcasting "));
-          if(station.MS) Serial.println("music");
-          else Serial.println("speech");
-          Serial.print("PS: ");
-          Serial.println(station.programService);
-          Serial.print("PTYN: ");
-          Serial.println(station.programTypeName);
-          Serial.print("RT: ");
-          Serial.println(station.radioText);
-          Serial.println("}");
-        } else Serial.println(F("RDS not available."));
-        Serial.flush();        
-        break;
-      case 'T': 
-        if(decoder.getRDSTime(&rdstime)) {
-          Serial.println(F("RDS CT (group 4A) information:"));
-          Serial.print(rdstime.tm_hour);
-          Serial.print(":");
-          Serial.print(rdstime.tm_min);
-          Serial.print("UTC ");
-          Serial.print(rdstime.tm_year);
-          Serial.print("-");
-          Serial.print(rdstime.tm_mon);
-          Serial.print("-");
-          Serial.println(rdstime.tm_mday);
-        } else Serial.println(F("RDS CT not available."));
-        Serial.flush();        
-        break;
-      case '?': 
+      case '?':
         Serial.println(F("Available commands:"));
         Serial.println(F("* v/V     - decrease/increase the volume"));
         Serial.println(F("* s/S     - seek down/up with band wrap-around"));
@@ -281,11 +221,9 @@ void loop()
         Serial.println(F("* q       - display signal quality metrics"));
         Serial.println(F("* t       - display decoded status byte"));
         Serial.println(F("* r       - display chip and firmware revision"));
-        Serial.println(F("* R       - display RDS data, if available"));
-        Serial.println(F("* T       - display RDS time, if available"));
         Serial.println(F("* ?       - display this list"));
-        Serial.flush();        
+        Serial.flush();
         break;
     }
-  }   
+  }
 }
