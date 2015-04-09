@@ -601,16 +601,19 @@ void Si4735::enableRDS(void){
 
 void Si4735::waitForInterrupt(byte which){
     while(!(getStatus() & which))
-      if(!_interrupt)
-        if (which == SI4735_STATUS_STCINT)
-          //According to the datasheet, the chip would prefer we don't disturb
-          //it with serial communication while it's seeking or tuning into a
-          //station. Sleep for two channel seek-times to give it a rest.
-          //NOTE: this means seek/tune operations will not complete in less than
-          //120ms, regardless of signal quality. If you don't like this, switch
-          //to interrupt mode (like you should have, from the beginning).
-          delay(120);
-        sendCommand(SI4735_CMD_GET_INT_STATUS);
+        if(!_interrupt) {
+            if (which == SI4735_STATUS_STCINT)
+                //According to the datasheet, the chip would prefer we don't
+                //disturb it with serial communication while it's seeking or
+                //tuning into a station. Sleep for two channel seek-times to
+                //give it a rest.
+                //NOTE: this means seek/tune operations will not complete in
+                //less than 120ms, regardless of signal quality. If you don't
+                //like this, switch to interrupt mode (like you should have,
+                //from the beginning).
+                delay(120);
+            sendCommand(SI4735_CMD_GET_INT_STATUS);
+        };
 }
 
 void Si4735::completeTune(void) {
