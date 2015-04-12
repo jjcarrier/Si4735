@@ -490,7 +490,7 @@ class Si4735
         *   RDS groups received. For example:
         *   loop() {
         *     while(Si4735::readRDSGroup(data))
-        *       Si4735RDSDecoder::decodeRDSGroup(data);
+        *       RDSDecoder::decodeRDSGroup(data);
         *   }
         */
         bool readRDSGroup(word* block);

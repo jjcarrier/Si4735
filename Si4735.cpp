@@ -491,12 +491,17 @@ void Si4735::setDeemphasis(byte deemph){
 }
 
 void Si4735::setMode(byte mode, bool powerdown, bool xosc, bool interrupt){
+    //TODO: this only works on the Uno and Mega due to attachInterrupt() being
+    //broken by design.
+    const bool wantedInterrupt = interrupt && (_pinGPO2 == 2 || _pinGPO2 == 3);
+    const byte interruptNumber = _pinGPO2 == 2 ? 0 : 1;
+
     if(powerdown) end(false);
     _mode = mode;
     _seeking = false;
     //Everything below is done in polling mode as interrupt setup is incomplete.
     if (_interrupt)
-      detachInterrupt(_pinGPO2);
+      detachInterrupt(interruptNumber);
     _interrupt = false;
 
     switch(_mode){
@@ -504,7 +509,7 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc, bool interrupt){
             sendCommand(
                 SI4735_CMD_POWER_UP,
                 SI4735_FLG_CTSIEN |
-                ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 : SI4735_FLG_GPO2IEN) |
+                (wantedInterrupt ? SI4735_FLG_GPO2IEN : 0x00) |
                 (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_FM,
                 SI4735_OUT_ANALOG);
             break;
@@ -514,7 +519,7 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc, bool interrupt){
             sendCommand(
                 SI4735_CMD_POWER_UP,
                 SI4735_FLG_CTSIEN |
-                ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? 0x00 : SI4735_FLG_GPO2IEN) |
+                (wantedInterrupt ? SI4735_FLG_GPO2IEN : 0x00) |
                 (xosc ? SI4735_FLG_XOSCEN : 0x00) | SI4735_FUNC_AM,
                 SI4735_OUT_ANALOG);
             break;
@@ -525,13 +530,13 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc, bool interrupt){
     //No need to do anything for GPO2 if using interrupts
     sendCommand(SI4735_CMD_GPIO_CTL,
                 (_i2caddr ? SI4735_FLG_GPO1OEN : 0x00) |
-                ((_pinGPO2 == SI4735_PIN_GPO2_HW) ? SI4735_FLG_GPO2OEN : 0x00));
+                (wantedInterrupt ? 0x00 : SI4735_FLG_GPO2OEN));
     //Set GPO2 high if using interrupts as Si4735 has a LOW active INT line
-    if(_pinGPO2 != SI4735_PIN_GPO2_HW)
+    if(wantedInterrupt)
       sendCommand(SI4735_CMD_GPIO_SET, SI4735_FLG_GPO2LEVEL);
 
     //Enable CTS, end-of-seek and RDS interrupts (if in FM mode)
-    if(_pinGPO2 != SI4735_PIN_GPO2_HW)
+    if(wantedInterrupt)
       setProperty(
           SI4735_PROP_GPO_IEN,
           word(0x00, (
@@ -542,10 +547,11 @@ void Si4735::setMode(byte mode, bool powerdown, bool xosc, bool interrupt){
     //The chip is alive and interrupts have been configured on its side, switch
     //ourselves to interrupt operation if so requested and if wiring was
     //properly done.
-    _interrupt = interrupt && _pinGPO2 != SI4735_PIN_GPO2_HW;
+    _interrupt = wantedInterrupt;
 
     if (_interrupt) {
-      attachInterrupt(_pinGPO2, Si4735::interruptServiceRoutine, FALLING);
+      attachInterrupt(interruptNumber, Si4735::interruptServiceRoutine,
+                      FALLING);
       interrupts();
     };
 
@@ -642,11 +648,25 @@ void Si4735::interruptServiceRoutine(void) {
       //therefore we can always send GET_INT_STATUS here since we were just
       //interrupted by the chip telling us it's at least ready for the next
       //command.
-      sendCommandInternal(SI4735_CMD_GET_INT_STATUS);
+#if !defined(SI4735_NOI2C)
+      //Wire is unfortunately interrupt based
+      NONATOMIC_BLOCK(NONATOMIC_RESTORESTATE) {
+#endif
+          sendCommandInternal(SI4735_CMD_GET_INT_STATUS);
+#if !defined(SI4735_NOI2C)
+      };
+#endif
       _getIntStatus = true;
     } else {
-      //The *INT bits in the status byte are now guaranteed to be updated.
-      updateStatus();
+#if !defined(SI4735_NOI2C)
+      //Wire is unfortunately interrupt based
+      NONATOMIC_BLOCK(NONATOMIC_RESTORESTATE) {
+#endif
+          //The *INT bits in the status byte are now guaranteed to be updated.
+          updateStatus();
+#if !defined(SI4735_NOI2C)
+      };
+#endif
       //Re-arm flip-flop.
       _getIntStatus = false;
     };
