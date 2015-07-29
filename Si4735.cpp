@@ -18,6 +18,7 @@
 #endif
 #if !defined(SI4735_NOI2C)
 # include <Wire.h>
+# include <util/atomic.h>
 #endif
 
 Si4735::Si4735(byte interface, byte pinPower, byte pinReset, byte pinGPO2,
